@@ -1,5 +1,5 @@
 # ignore sencha lib
-lib/sencha-touch
-!lib/sencha-touch/sencha-touch.js
-!lib/sencha-touch/sencha-touch-debug-w-comments.js
-!lib/sencha-touch/resources/
+#lib/sencha-touch
+#!lib/sencha-touch/sencha-touch.js
+#!lib/sencha-touch/sencha-touch-debug-w-comments.js
+#!lib/sencha-touch/resources/

@@ -1,2 +1,3 @@
 # ignore sencha lib
 *~
+resource/scss/.sass-cache/

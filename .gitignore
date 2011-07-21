@@ -1,15 +1,5 @@
 # ignore sencha lib
 lib/sencha-touch
-#lib/sencha-touch/docs
-#lib/sencha-touch/examples
-#lib/sencha-touch/jsbuilder
-#lib/sencha-touch/pkgs
-#lib/sencha-touch/src
-#lib/sencha-touch/test
-#lib/sencha-touch/*.html
-#lib/sencha-touch/*.txt
-#lib/sencha-touch/*.inc
-#lib/sencha-touch/*.js
-#lib/sencha-touch/*.jsb3
+!lib/sencha-touch/sencha-touch.js
 !lib/sencha-touch/sencha-touch-debug-w-comments.js
 !lib/sencha-touch/resources/

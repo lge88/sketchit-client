@@ -1,0 +1,14 @@
+SRC_DIR = src
+BUILD= cat
+BASE_FILES = ${SRC_DIR}/Undoable.js\
+${SRC_DIR}/UndoableList.js\
+${SRC_DIR}/Element.js\
+${SRC_DIR}/Node.js
+${SRC_DIR}/Root.js
+
+all: ${BASE_FILES}
+	${BUILD} ${BASE_FILES} > sketchitLib_sencha_plugin.js
+
+clean: 
+	rm sketchitLib_sencha_plugin.js
+

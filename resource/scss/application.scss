@@ -1,0 +1,43 @@
+$include-default-icons: false;
+@import 'sencha-touch/default/all';
+@include sencha-panel;
+@include sencha-buttons;
+//@include sencha-sheet; 
+//@include sencha-picker;
+//@include sencha-toolbar-forms;
+//@include sencha-tabs;
+@include sencha-toolbar;
+//@include sencha-carousel;
+//@include sencha-indexbar;
+@include sencha-list;
+@include sencha-layout;
+@include sencha-form;
+//@include sencha-sheet;
+//@include sencha-loading-spinner;
+
+@include pictos-iconmask(doc_list);
+@include pictos-iconmask(settings3);
+@include pictos-iconmask(mesh);
+@include pictos-iconmask(run);
+
+@include pictos-iconmask(refresh5);
+@include pictos-iconmask(unselect);
+@include pictos-iconmask(trash);
+@include pictos-iconmask(undo);
+@include pictos-iconmask(redo);
+@include pictos-iconmask(save);
+@include pictos-iconmask(open);
+@include pictos-iconmask(log);
+
+
+@include pictos-iconmask(draw);
+@include pictos-iconmask(select);
+@include pictos-iconmask(load);
+
+.x-button{
+  cursor: pointer
+}
+.x-button-label{
+  font-weight: normal
+}
+

@@ -2,6 +2,8 @@ sketchit.views.Main = Ext.extend(Ext.Panel, {
 
 	layout : 'fit',
 	fullscreen : true,
+	
+	
 	items : {
 		xtype : 'sketchitCanvas',
 		html : '<canvas id="workspace"  width="' + 1500 + '" height="' + 1500 + '">no canvas support</canvas>',
@@ -12,15 +14,11 @@ sketchit.views.Main = Ext.extend(Ext.Panel, {
 	}, {
 		xtype : 'sketchitBottombar'
 	}],
+	
+	/*
 
 	listeners : {
-		
-		/*
 
-		afterrender : function(me) {
-			me.resetCanvasSize();
-			me.resetCanvasOrigin();
-		},*/
 		orientationchange : function(me) {
 			me.resetCanvasSize();
 			me.resetCanvasOrigin();
@@ -36,7 +34,7 @@ sketchit.views.Main = Ext.extend(Ext.Panel, {
 		var me = this, d = me.getDockedItems(), c = me.getComponent(0);
 		c.Renderer.canvasOriginX = 0;
 		c.Renderer.canvasOriginY = d[0].getHeight();
-	}
+	}*/
 });
 
 Ext.reg('sketchitMain', sketchit.views.Main);

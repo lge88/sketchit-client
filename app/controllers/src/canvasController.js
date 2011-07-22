@@ -8,6 +8,8 @@ Ext.regController("canvasController", {
 		this.mainView = this.render({
 			xtype : 'sketchitMain'
 		}, Ext.getBody());
+		
+		console.log("w: ",this.mainView.getWidth()," h: ",this.mainView.getHeight())
 
 		this.mainView.on({
 			orientationchange : this.onOrientationchange,
@@ -60,6 +62,19 @@ Ext.regController("canvasController", {
 		this.bottomBar.getComponent(0).getComponent(0).setHandler(showList,this)
 
 	},
+	
+	initCanvasHandler: function(){
+		
+		
+		
+	},
+	
+	initMenu: function(){
+		
+		
+	},
+	
+	
 	setOptions : function(options) {
 		Ext.apply(this.options, options);
 

@@ -7,8 +7,8 @@ Ext.regApplication({
 	 */
 	launch: function() {
 		Ext.dispatch({
-			controller: 'canvasController',
-			action    : 'initController',		
+			controller: 'sketchitController',
+			action    : 'initAll',		
 		});
 	}
 });

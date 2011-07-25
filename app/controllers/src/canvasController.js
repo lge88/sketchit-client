@@ -15,13 +15,15 @@ Ext.regController("canvasController", {
 			orientationchange : this.onOrientationchange,
 			scope : this
 		})
-		this.onOrientationchange(this.mainView);
+		
 
 		this.canvasPanel = this.mainView.getComponent(0);
 		this.Renderer = new sketchitLib.Renderer({
 			Root : new sketchitLib.Root({}),
 			Canvas : document.getElementById('workspace')
+			//Canvas: this.canvasPanel.getEI()
 		})
+		this.onOrientationchange(this.mainView);
 
 		this.canvasPanel.mon(this.canvasPanel.el, {
 			doubletap : this.onDoubleTap,
@@ -60,6 +62,8 @@ Ext.regController("canvasController", {
 		}
 		this.bottomBar = this.mainView.getDockedComponent(1);
 		this.bottomBar.getComponent(0).getComponent(0).setHandler(showList,this)
+		
+		this.bottomBar.getComponent(2).setHandler(this.Renderer.clear,this.Renderer)
 
 	},
 	
@@ -93,6 +97,9 @@ Ext.regController("canvasController", {
 		this.canvasHeight =  panel.getHeight() -  d[0].getHeight() -  d[1].getHeight();
 		this.canvasUpLeftX = 0;
 		this.canvasUpleftY = d[0].getHeight();
+		this.Renderer.width = this.canvasWidth;
+		this.Renderer.height = this.canvasHeight;
+
 	},
 	pagePoint2CanvasPoint : function(p) {
 		return {
@@ -145,10 +152,10 @@ Ext.regController("canvasController", {
 	},
 	onPinch : function(e, el, obj) {
 		//e.preventDefault();
-		var first = this.canvasPanel.page2canvas({
+		var first = this.page2canvas({
 			X : event.touches[0].pageX,
 			Y : event.touches[0].pageY
-		}), second = this.canvasPanel.page2canvas({
+		}), second = this.page2canvas({
 			X : event.touches[1].pageX,
 			Y : event.touches[1].pageY
 		});

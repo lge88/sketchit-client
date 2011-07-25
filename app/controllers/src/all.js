@@ -117,10 +117,10 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 	},
 	onPinch : function(e, el, obj) {
 		//e.preventDefault();
-		var first = this.page2canvas({
+		var first = this.pagePoint2CanvasPoint({
 			X : event.touches[0].pageX,
 			Y : event.touches[0].pageY
-		}), second = this.page2canvas({
+		}), second = this.pagePoint2CanvasPoint({
 			X : event.touches[1].pageX,
 			Y : event.touches[1].pageY
 		});

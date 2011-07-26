@@ -239,12 +239,12 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 	resetViewPort : function() {
 		console.log("reset view port")
 		this.options.scale = {
-			sx : 1.0,
-			sy : 1.0
+			x : 1.0,
+			y : 1.0
 		};
 		this.options.shift = {
-			dx : 0,
-			dy : 0
+			x : 0,
+			y : 0
 		};
 
 		//this.options.

@@ -86,6 +86,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 
 	},
 	onOrientationchange : function() {
+		//alert("double tab")
 		this.resetCanvasPosition();
 	},
 	onDoubleTap : function(e, el, obj) {
@@ -139,11 +140,11 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 	onPinchStart : function(e, el, obj) {
 		//alert("pinch! "+e.touches.length)
 		var first = this.pagePoint2CanvasPoint({
-			X : event.touches[0].pageX,
-			Y : event.touches[0].pageY
+			X : e.touches[0].pageX,
+			Y : e.touches[0].pageY
 		}), second = this.pagePoint2CanvasPoint({
-			X : event.touches[1].pageX,
-			Y : event.touches[1].pageY
+			X : e.touches[1].pageX,
+			Y : e.touches[1].pageY
 		});
 		this.pinchTranslate0 = {
 			X : 0.5 * (first.X + second.X),
@@ -236,18 +237,22 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		this.Renderer.height = this.canvasHeight;
 	},
 	resetViewPort : function() {
-		this.Renderer.options.viewPortScale = {
+		console.log("reset view port")
+		this.options.scale = {
 			x : 1.0,
 			y : 1.0
 		};
-		this.Renderer.options.viewPortTranslate = {
+		this.options.shift = {
 			x : 0,
 			y : 0
 		};
 
 		//this.options.
-
+		this.Renderer.ctx.setTransform(this.options.scale.sx, 0, 0, this.options.scale.sy, this.options.shift.dx, this.options.shift.dy);
+		
 		this.Renderer.refresh();
+
+		//this.Renderer.refresh();
 	},
 	refreshCanvas : function(scale, scaleCenter, shift) {
 		if(!Ext.isDefined(scale)) {

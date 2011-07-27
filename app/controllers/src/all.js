@@ -127,7 +127,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 	onTouchEnd : function(event, html, obj) {
 		var result = this.shapeRecognizer.Recognize(this.inputStrokes, false),
 		
-		command=this.commandGen(result,this.modelControl);
+		//command=this.commandGen(result,this.modelControl);
 		//console.log("input strokes", this.Renderer.inputStrokes)
 		//console.log("this.inputStrokes.slice()", this.inputStrokes.slice())
 		//this.Renderer.inputStrokes = this.Renderer.inputStrokes.concat(this.inputStrokes.slice());

@@ -39,12 +39,14 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 	setOptions : function(options) {
 		Ext.apply(this.options, options);
 	},
+	modelControl:{
+		mode:'draw',
+		pointSnapThreshold:10,
+		lineSnapThreshold:10,
+		
+	},
 	options : {
 		inputStokeStyle : "rgb(0,0,255)",
-		origin : {
-			X : 0,
-			Y : 0
-		},
 		shift : {
 			dx : 0,
 			dy : 0
@@ -53,10 +55,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			sx : 1,
 			sy : 1
 		},
-		scaleCenter : {
-			X : 0,
-			Y : 0
-		}
+		
 	},
 
 	initHandlers : function() {
@@ -126,13 +125,15 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 
 	},
 	onTouchEnd : function(event, html, obj) {
-		var result = this.shapeRecognizer.Recognize(this.inputStrokes, false);
+		var result = this.shapeRecognizer.Recognize(this.inputStrokes, false),
+		
+		command=this.commandGen(result,this.modelControl);
 		//console.log("input strokes", this.Renderer.inputStrokes)
 		//console.log("this.inputStrokes.slice()", this.inputStrokes.slice())
-		this.Renderer.inputStrokes = this.Renderer.inputStrokes.concat(this.inputStrokes.slice());
+		//this.Renderer.inputStrokes = this.Renderer.inputStrokes.concat(this.inputStrokes.slice());
 		//console.log("renderer ", this.Renderer.inputStrokes)
 		delete this.inputStrokes;
-		this.Renderer.refresh();
+		//this.Renderer.refresh();
 
 		//console.log("renderer ", this.Renderer)
 
@@ -246,13 +247,8 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			dx : 0,
 			dy : 0
 		};
-
-		//this.options.
-		this.Renderer.ctx.setTransform(this.options.scale.sx, 0, 0, this.options.scale.sy, this.options.shift.dx, this.options.shift.dy);
-		
+		this.Renderer.ctx.setTransform(this.options.scale.sx, 0, 0, this.options.scale.sy, this.options.shift.dx, this.options.shift.dy);		
 		this.Renderer.refresh();
-
-		//this.Renderer.refresh();
 	},
 	refreshCanvas : function(scale, scaleCenter, shift) {
 		if(!Ext.isDefined(scale)) {

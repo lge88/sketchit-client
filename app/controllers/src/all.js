@@ -30,7 +30,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		this.shapeRecognizer = new DollarRecognizer();
 
 		//init command recognizer
-		//this.commandGenerator = new sketchitLib.commandGenerator();
+		this.commandGen = {};
 
 		//init event handlers
 		this.initHandlers();

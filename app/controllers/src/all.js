@@ -64,6 +64,8 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		inputStokeStyle : "rgb(0,0,255)",
 		inputStrokeWidth : 1,
 		lineWidthUppeLimit:5,
+		nodeSize:2,
+		nodeColor:"rgb(255,0,0)",
 		shift : {
 			dx : 0,
 			dy : 0
@@ -110,6 +112,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			touchmove : this.onTouchMove,
 			touchstart : this.onTouchStart,
 			touchend : this.onTouchEnd,
+			
 			//tapcancel: function(){alert("touch cancle")},
 			pinchstart : this.onPinchStart,
 			pinch : this.onPinch,
@@ -177,8 +180,8 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			X : e.changedTouches[0].pageX,
 			Y : e.changedTouches[0].pageY
 		}))
-		console.log("touch end! touches: " + p.X + "," + p.Y)//changedT
-		if(e.touches.length === 0) {
+		console.log("touch end! touches: "+e.touches.length+" " + p.X + "," + p.Y)//changedT
+		if(e.touches.length === 0 || e.touches.length === 1) {
 			var result = this.shapeRecognizer.Recognize(this.inputStrokes, false),cmd;
 			console.log("result ",result);
 			result.data.modelOptions = this.modelOptions;
@@ -418,6 +421,11 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 				y1:fr.Y,
 				x2:to.X,
 				y2:to.Y,
+				pointSnapThreshold : 10,
+				lineSnapThreshold : 10,
+				snapToGrid : true,
+				grid_Dx : 20,
+				grid_Dy : 20				
 			}
 			return args;
 		},

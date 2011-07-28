@@ -125,15 +125,16 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 
 	},
 	onTouchEnd : function(event, html, obj) {
-		var result = this.shapeRecognizer.Recognize(this.inputStrokes, false),
+		var result = this.shapeRecognizer.Recognize(this.inputStrokes, false);
 		
 		//command=this.commandGen(result,this.modelControl);
 		//console.log("input strokes", this.Renderer.inputStrokes)
 		//console.log("this.inputStrokes.slice()", this.inputStrokes.slice())
-		//this.Renderer.inputStrokes = this.Renderer.inputStrokes.concat(this.inputStrokes.slice());
+		this.Renderer.inputStrokes = this.Renderer.inputStrokes.concat(this.inputStrokes.slice());
+		//this.Renderer.inputStrokes = this.inputStrokes;
 		//console.log("renderer ", this.Renderer.inputStrokes)
 		delete this.inputStrokes;
-		//this.Renderer.refresh();
+		this.Renderer.refresh();
 
 		//console.log("renderer ", this.Renderer)
 
@@ -155,10 +156,14 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			sx : 1.0,
 			sy : 1.0
 		};
+		//this.Renderer.ctx.save();
 
 	},
 	onPinch : function(e, el, obj) {
 		//e.preventDefault();
+		if (!Ext.isDefined(e.touches[0]) || !Ext.isDefined(e.touches[1])){
+			return;
+		}
 
 		var first = this.pagePoint2CanvasPoint({
 			X : e.touches[0].pageX,
@@ -180,16 +185,20 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		};
 
 		//this.Renderer.ctx.save();
-		m11 = e.scale * this.options.scale.sx;
+		m11 = e.scale //* this.options.scale.sx;
 		m12 = 0;
 		m21 = 0;
-		m22 = e.scale * this.options.scale.sy;
-		cx = this.pinchTranslate1.X - this.pinchTranslate1.X * e.scale * this.options.scale.sx;
-		cy = this.pinchTranslate1.Y - this.pinchTranslate1.Y * e.scale * this.options.scale.sy;
-		dx = (this.pinchTranslate1.X - this.pinchTranslate0.X) * e.scale * this.options.scale.sx;
-		dy = (this.pinchTranslate1.Y - this.pinchTranslate0.Y) * e.scale * this.options.scale.sy;
+		m22 = e.scale //* this.options.scale.sy;
+		cx = this.pinchTranslate1.X - this.pinchTranslate1.X * e.scale //* this.options.scale.sx;
+		cy = this.pinchTranslate1.Y - this.pinchTranslate1.Y * e.scale //* this.options.scale.sy;
+		dx = (this.pinchTranslate1.X - this.pinchTranslate0.X) * e.scale //* this.options.scale.sx;
+		dy = (this.pinchTranslate1.Y - this.pinchTranslate0.Y) * e.scale //* this.options.scale.sy;
+		this.Renderer.ctx.save();
+		
 
-		this.Renderer.ctx.setTransform(m11, m12, m21, m22, cx + dx, cy + dy);
+		//this.Renderer.ctx.setTransform(m11, m12, m21, m22, cx + dx, cy + dy);
+		this.Renderer.ctx.transform(m11, m12, m21, m22, cx + dx, cy + dy);
+		
 		this.pinchScale = {
 			sx : m11,
 			sy : m22
@@ -198,22 +207,29 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			dx:cx+dx,
 			dy:cy+dy
 		}
+		
+		this.Renderer.ctx.lineWidth=this.Renderer.ctx.lineWidth/m11;
 
 		this.Renderer.refresh();
+		this.Renderer.ctx.restore();
 	},
 	onPinchEnd : function() {
-		this.options.scale={
-			sx:this.pinchScale.sx,
-			sy:this.pinchScale.sy
-		}
 		this.options.shift={
-			dx:this.pinchShift.dx,
-			dy:this.pinchShift.dy
-		}
+			dx:this.options.scale.sx*this.pinchShift.dx+this.options.shift.dx,
+			dy:this.options.scale.sy*this.pinchShift.dy+this.options.shift.dy
+		};
+		this.options.scale={
+			sx:this.pinchScale.sx*this.options.scale.sx,
+			sy:this.pinchScale.sy*this.options.scale.sy
+		};
+		//this.Renderer.ctx.restore();
+		//this.Renderer.ctx.save();
+		//this.Renderer.ctx.transform(this.options.scale.sx, 0, 0, this.options.scale.sy, this.options.shift.dx, this.options.shift.dy);
 		
 		this.Renderer.ctx.setTransform(this.options.scale.sx, 0, 0, this.options.scale.sy, this.options.shift.dx, this.options.shift.dy);
-		
+		this.Renderer.ctx.lineWidth=1/this.options.scale.sx;
 		this.Renderer.refresh();
+		//this.Renderer.ctx.restore();
 	},
 	pagePoint2CanvasPoint : function(p) {
 		var result;
@@ -247,7 +263,8 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			dx : 0,
 			dy : 0
 		};
-		this.Renderer.ctx.setTransform(this.options.scale.sx, 0, 0, this.options.scale.sy, this.options.shift.dx, this.options.shift.dy);		
+		this.Renderer.ctx.setTransform(this.options.scale.sx, 0, 0, this.options.scale.sy, this.options.shift.dx, this.options.shift.dy);	
+		this.Renderer.ctx.lineWidth=1/this.options.scale.sx;	
 		this.Renderer.refresh();
 	},
 	refreshCanvas : function(scale, scaleCenter, shift) {

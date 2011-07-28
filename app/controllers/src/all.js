@@ -180,20 +180,21 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			X : e.changedTouches[0].pageX,
 			Y : e.changedTouches[0].pageY
 		}))
-		console.log("touch end! touches: "+e.touches.length+" " + p.X + "," + p.Y)//changedT
+		//console.log("touch end! touches: "+e.touches.length+" " + p.X + "," + p.Y)//changedT
 		if(e.touches.length === 0 || e.touches.length === 1) {
 			var result = this.shapeRecognizer.Recognize(this.inputStrokes, false),cmd;
-			console.log("result ",result);
+			//console.log("result ",result);
 			result.data.modelOptions = this.modelOptions;
 			cmd=this.commandGen(result.name, this.mode, result.data);
-			console.log("cmd ",cmd);
+			//console.log("cmd ",cmd);
 			if (cmd){
 				this.Root.doHandler(cmd);
 				if (cmd.undo){
 					this.bottomBar.getComponent(5).setDisabled(false);
+					this.bottomBar.getComponent(6).setDisabled(true);
 				}
 				
-				console.log("root ",this.Root);
+				//console.log("root ",this.Root);
 				//this.Renderer.refresh();
 			}
 			
@@ -440,7 +441,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			return false;
 		}
 		var cmd={};
-		console.log("input:",arguments," voc",this.vocabulary[mode][shapeName])
+		//console.log("input:",arguments," voc",this.vocabulary[mode][shapeName])
 		cmd.name = this.vocabulary[mode][shapeName];
 		cmd.args = this.argsGen[cmd.name].call(this,data);
 		cmd.undo =this.Undoable[cmd.name];

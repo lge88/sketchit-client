@@ -8,9 +8,11 @@ sketchit.views.Topbar = Ext.extend(Ext.Toolbar, {
 		Ext.apply(this, {
 			dock:"top",
 			layout:"hbox",
+			//ui:"light",
 			defaults: {
 				iconMask:true,
-				ui:"plain"
+				ui:"plain",
+				//ui:"light",
 			},
 			items: [{
 				xtype:'segmentedbutton',

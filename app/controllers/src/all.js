@@ -54,11 +54,14 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 	mode : 'draw',
 	modelOptions : {
 		snapToNode:true,
-		pointSnapThreshold : 5,
+		pointSnapThreshold : 15,
 		snapToLine:true,		
 		lineSnapThreshold : 5,
 		snapToGrid : true,
-		grid:10
+		grid:10,
+		SPCSnapToDirection:true,
+		SPCSnapThreshold:0.2,
+		SPCTriangleSize:10,
 
 	},
 	viewOptions : {
@@ -100,15 +103,26 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		gridWidth:1,
 		gridColor: "rgba(0,0,0,0.3)",
 		
-		pointSnapThreshold : 10,
+		pointSnapThreshold : 30,
 		lineSnapThreshold : 10,
+		
+		SPCColor:'rgb(0,0,0)',
+		SPCLineWidth:2,
+		SPCTriangleSize:20,
+		SPCGroundLength:40,
+		SPCGroundThickness:8,
+		SPCGroundN:10,	
+		SPCPinRadius:5,
+		SPCRollerRadius:3,
+		
 	
 
 	},
 	rescaleModelOptions:function(){
-		this.modelOptions.pointSnapThreshold=this.viewOptions.pointSnapThreshold/this.viewOptions.modelScale.sx/this.viewOptions.scale.sx;
-		this.modelOptions.lineSnapThreshold=this.viewOptions.lineSnapThreshold/this.viewOptions.modelScale.sx/this.viewOptions.scale.sx;
+		this.modelOptions.pointSnapThreshold=this.viewOptions.pointSnapThreshold/this.viewOptions.modelScale.sx//this.viewOptions.scale.sx;
+		this.modelOptions.lineSnapThreshold=this.viewOptions.lineSnapThreshold/this.viewOptions.modelScale.sx//this.viewOptions.scale.sx;
 		this.modelOptions.grid=this.viewOptions.grid/this.viewOptions.modelScale.sx;
+		this.modelOptions.SPCTriangleSize=this.viewOptions.SPCTriangleSize/this.viewOptions.modelScale.sx;
 	},
 
 	initHandlers : function() {
@@ -421,7 +435,10 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 	vocabulary : {
 		"draw" : {
 			"line" : "addALineElement",
-			"triangle":"addASPConstraint"
+			"triangle":"addASPConstraint",
+			"circle":"releaseConstraint",
+			"rectangle":"releaseConstraint",
+			//"poor match":"dummy"
 		},
 		"select" : {
 
@@ -445,21 +462,33 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			return args;
 		},
 		"addASPConstraint" : function(data) {
-			var args,fr,to;
+			
+			var args,fr;
 			fr= this.canvasPoint2ModelPoint(data.from);
-			to= this.canvasPoint2ModelPoint(data.to);
 			args={
-				x1:fr.X,
-				y1:fr.Y,
-				x2:to.X,
-				y2:to.Y,		
+				x:fr.X,
+				y:fr.Y,
+				angle:data.IndicativeAngle,
+				show:true		
 			}
+			
+			return args;
+		},
+		"releaseConstraint" : function(data) {
+			
+			var args,fr;
+			fr= this.canvasPoint2ModelPoint(data.from);
+			args={
+				x:fr.X,
+				y:fr.Y,		
+			}			
 			return args;
 		},
 	},
 	Undoable : {
-		"addALineElement" : true
-
+		"addALineElement" : true,
+		"addASPConstraint":true,
+		"releaseConstraint":true,
 	},
 
 	commandGen : function(shapeName, mode, data) {
@@ -467,6 +496,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			return false;
 		}
 		var cmd={};
+		console.log("data ",data," name ",shapeName)
 		//console.log("input:",arguments," voc",this.vocabulary[mode][shapeName])
 		cmd.name = this.vocabulary[mode][shapeName];
 		cmd.args = this.argsGen[cmd.name].call(this,data);

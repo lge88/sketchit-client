@@ -45,6 +45,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		//init canvas transform
 
 		this.Renderer.initTransform();
+		this.Renderer.refresh();
 
 	},
 	setOptions : function(options) {
@@ -52,17 +53,17 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 	},
 	mode : 'draw',
 	modelOptions : {
-		//isSnap:true,
-		pointSnapThreshold : 10,
-		lineSnapThreshold : 10,
+		snapToNode:true,
+		pointSnapThreshold : 5,
+		snapToLine:true,		
+		lineSnapThreshold : 5,
 		snapToGrid : true,
-		grid_Dx : 20,
-		grid_Dy : 20
+		grid:10
 
 	},
 	viewOptions : {
 		inputStokeStyle : "rgb(0,0,255)",
-		inputStrokeWidth : 1,
+		inputStrokeWidth : 2,
 		lineWidthUppeLimit:5,
 		nodeSize:2,
 		nodeColor:"rgb(255,0,0)",
@@ -76,7 +77,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		},
 		backgroundColor : 'rgb(255,255,255)',
 		lineElementColor : 'rgb(0,0,255)',
-		lineElementWidth : 2,
+		lineElementWidth : 4,
 		dashStyle : {
 			dl : 10,         //dash line interval
 			r : 0.5  //the rate of solid line length to dash line interval
@@ -93,8 +94,21 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		showNodeId : false,
 		showElementId : false,
 		showMarks : false,
-		showGrid : true
+		
+		showGrid : true,	
+		grid:20,
+		gridWidth:1,
+		gridColor: "rgba(0,0,0,0.3)",
+		
+		pointSnapThreshold : 10,
+		lineSnapThreshold : 10,
+	
 
+	},
+	rescaleModelOptions:function(){
+		this.modelOptions.pointSnapThreshold=this.viewOptions.pointSnapThreshold/this.viewOptions.modelScale.sx/this.viewOptions.scale.sx;
+		this.modelOptions.lineSnapThreshold=this.viewOptions.lineSnapThreshold/this.viewOptions.modelScale.sx/this.viewOptions.scale.sx;
+		this.modelOptions.grid=this.viewOptions.grid/this.viewOptions.modelScale.sx;
 	},
 
 	initHandlers : function() {
@@ -134,6 +148,8 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 	onOrientationchange : function() {
 		//alert("double tab")
 		this.resetCanvasPosition();
+		this.Renderer.resetViewPort();
+		this.Renderer.refresh();
 	},
 	onDoubleTap : function(e, el, obj) {
 		//alert("double tab")
@@ -285,6 +301,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		}
 
 		//this.Renderer.ctx.lineWidth = this.Renderer.ctx.lineWidth / m11;
+		this.rescaleModelOptions();
 
 		this.Renderer.refresh();
 		this.Renderer.ctx.restore();
@@ -308,6 +325,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		//this.Renderer.ctx.lineWidth = 1 / this.viewOptions.scale.sx;
 		//this.applyInputStrokeStyle();
 		this.Renderer.ctx.lineWidth = this.viewOptions.inputStokeWidth / this.viewOptions.scale.sx;
+		this.rescaleModelOptions();
 		this.Renderer.refresh();
 		//this.Renderer.ctx.restore();
 	},
@@ -402,7 +420,8 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 	 },*/
 	vocabulary : {
 		"draw" : {
-			"line" : "addALineElement"
+			"line" : "addALineElement",
+			"triangle":"addASPConstraint"
 		},
 		"select" : {
 
@@ -421,12 +440,19 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 				x1:fr.X,
 				y1:fr.Y,
 				x2:to.X,
-				y2:to.Y,
-				pointSnapThreshold : 10,
-				lineSnapThreshold : 10,
-				snapToGrid : true,
-				grid_Dx : 20,
-				grid_Dy : 20				
+				y2:to.Y,		
+			}
+			return args;
+		},
+		"addASPConstraint" : function(data) {
+			var args,fr,to;
+			fr= this.canvasPoint2ModelPoint(data.from);
+			to= this.canvasPoint2ModelPoint(data.to);
+			args={
+				x1:fr.X,
+				y1:fr.Y,
+				x2:to.X,
+				y2:to.Y,		
 			}
 			return args;
 		},

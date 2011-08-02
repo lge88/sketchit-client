@@ -45,6 +45,8 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		//init canvas transform
 
 		this.Renderer.initTransform();
+		
+		// first render
 		this.Renderer.refresh();
 
 	},
@@ -148,7 +150,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			scope : this
 		});
 
-		//this.initMenuHandlers();
+		//this.init Menu Handlers;
 		//clear button
 		this.bottomBar.getComponent(2).setHandler(this.clearAll, this);
 		//undo button
@@ -166,19 +168,10 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		this.Renderer.refresh();
 	},
 	onDoubleTap : function(e, el, obj) {
-		//alert("double tab")
-		//html.style.webkitTransform = 'scale(1)';
 		this.Renderer.resetViewPort();
 		this.Renderer.refresh();
 	},
 	onTouchStart : function(e, el, obj) {
-		//console.log("touches: " + e.touches.length)
-
-		//this.howManyTouches = e.touches.length;
-		//if(this.howManyTouches === 1) {
-		//this.ctx.strokeStyle = "rgb(0,0,255)";
-		//this.ctx.fillStyle = "rgb(255,255,255)";
-		//this.ctx.fillRect(0, 0, this.canvasPanel.canvasWidth, this.canvasPanel.canvasHeight);
 		this.inputStrokes = [];
 
 		this.inputStrokes.push(this.pagePoint2CanvasPoint({
@@ -187,67 +180,38 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		}));
 
 		this.applyInputStrokeStyle();
-		//} else {
-
-		//}
 
 	},
 	onTouchMove : function(e, el, obj) {
-		//var p=c.getCanvasXY(x,y);
-
 		this.inputStrokes.push(this.pagePoint2CanvasPoint({
 			X : e.touches[0].pageX,
 			Y : e.touches[0].pageY
 		}));
 		var l = this.inputStrokes.length;
-		//console.log("stroke len: ", l)
 		this.Renderer.drawASingleStroke(this.inputStrokes[ l - 1], this.inputStrokes[ l - 2]);
-		//inputStrokeWidth
-
 	},
 	onTouchEnd : function(e, el, obj) {
 		var p = this.canvasPoint2ModelPoint(this.pagePoint2CanvasPoint({
 			X : e.changedTouches[0].pageX,
 			Y : e.changedTouches[0].pageY
 		}))
-		//console.log("touch end! touches: "+e.touches.length+" " + p.X + "," + p.Y)//changedT
+
 		if(e.touches.length === 0 || e.touches.length === 1) {
 			var result = this.shapeRecognizer.Recognize(this.inputStrokes, false),cmd;
-			//console.log("result ",result);
 			result.data.modelOptions = this.modelOptions;
 			cmd=this.commandGen(result.name, this.mode, result.data);
-			//console.log("cmd ",cmd);
 			if (cmd){
 				this.Root.doHandler(cmd);
 				if (cmd.undo){
 					this.bottomBar.getComponent(5).setDisabled(false);
 					this.bottomBar.getComponent(6).setDisabled(true);
 				}
-				
-				//console.log("root ",this.Root);
-				//this.Renderer.refresh();
 			}
-			
-			/*
-			this.Root.doHandler(cmd)*/
-			//canvasPoint2ModelPoint
-
 		}
-
-		//command=this.commandGen(result,this.modelControl);
-		//console.log("input strokes", this.Renderer.inputStrokes)
-		//console.log("this.inputStrokes.slice()", this.inputStrokes.slice())
-		//this.Renderer.inputStrokes = this.Renderer.inputStrokes.concat(this.inputStrokes.slice());
-		//this.Renderer.inputStrokes = this.inputStrokes;
-		//console.log("renderer ", this.Renderer.inputStrokes)
 		delete this.inputStrokes;
 		this.Renderer.refresh();
-
-		//console.log("renderer ", this.Renderer)
-
 	},
 	onPinchStart : function(e, el, obj) {
-		//alert("pinch! "+e.touches.length)
 		var first = this.pagePoint2CanvasPoint({
 			X : e.touches[0].pageX,
 			Y : e.touches[0].pageY
@@ -263,11 +227,8 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			sx : 1.0,
 			sy : 1.0
 		};
-		//this.Renderer.ctx.save();
-
 	},
 	onPinch : function(e, el, obj) {
-		//e.preventDefault();
 		if(!Ext.isDefined(e.touches[0]) || !Ext.isDefined(e.touches[1])) {
 			return;
 		}
@@ -279,9 +240,6 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			X : e.touches[1].pageX,
 			Y : e.touches[1].pageY
 		}), m11, m12, m21, m22, cx, cy, dx, dy;
-
-		//console.log("scale "+e.scale)
-		//this.pinchScale=e.scale;
 		this.pinchTranslate1 = {
 			X : 0.5 * (first.X + second.X),
 			Y : 0.5 * (first.Y + second.Y)
@@ -291,7 +249,6 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			sy : e.scale
 		};
 
-		//this.Renderer.ctx.save();
 		m11 = e.scale //* this.options.scale.sx;
 		m12 = 0;
 		m21 = 0;
@@ -313,8 +270,6 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			dx : cx + dx,
 			dy : cy + dy
 		}
-
-		//this.Renderer.ctx.lineWidth = this.Renderer.ctx.lineWidth / m11;
 		this.rescaleModelOptions();
 
 		this.Renderer.refresh();
@@ -331,17 +286,10 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		};
 
 		this.Renderer.initTransform();
-		//this.Renderer.ctx.restore();
-		//this.Renderer.ctx.save();
 		this.Renderer.ctx.transform(this.viewOptions.scale.sx, 0, 0, this.viewOptions.scale.sy, this.viewOptions.shift.dx, this.viewOptions.shift.dy);
-
-		//this.Renderer.ctx.setTransform(this.viewOptions.scale.sx, 0, 0, this.viewOptions.scale.sy, this.viewOptions.shift.dx, this.viewOptions.shift.dy);
-		//this.Renderer.ctx.lineWidth = 1 / this.viewOptions.scale.sx;
-		//this.applyInputStrokeStyle();
 		this.Renderer.ctx.lineWidth = this.viewOptions.inputStokeWidth / this.viewOptions.scale.sx;
 		this.rescaleModelOptions();
 		this.Renderer.refresh();
-		//this.Renderer.ctx.restore();
 	},
 	pagePoint2CanvasPoint : function(p) {
 		return {
@@ -370,6 +318,8 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		this.Renderer.height = this.canvasHeight;
 	},
 	clearAll:function(){
+		//TODO: this.Root.doHandler({name:"clear"});
+		
 		this.Renderer.clear();
 	},
 	undo:function(){
@@ -389,56 +339,12 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			this.bottomBar.getComponent(6).setDisabled(true);
 		}
 	},
-	/*
-	 initTransform : function() {
-	 this.Renderer.ctx.setTransform(1, 0, 0, -1, 0, this.canvasHeight);
-	 },
-
-	 resetViewPort : function() {
-	 this.initTransform();
-	 this.viewOptions.scale = {
-	 sx : 1.0,
-	 sy : 1.0
-	 };
-	 this.viewOptions.shift = {
-	 dx : 0,
-	 dy : 0
-	 };
-	 //this.Renderer.ctx.setTransform(this.viewOptions.scale.sx, 0, 0, this.viewOptions.scale.sy, this.viewOptions.shift.dx, this.viewOptions.shift.dy);
-	 this.Renderer.ctx.transform(this.viewOptions.scale.sx, 0, 0, this.viewOptions.scale.sy, this.viewOptions.shift.dx, this.viewOptions.shift.dy);
-	 this.Renderer.ctx.lineWidth = this.viewOptions.inputStrokeWidth / this.viewOptions.scale.sx;
-	 this.Renderer.refresh();
-	 },
-
-	 coordTranslate : function(p, x, y) {
-	 if(Ext.isArray(p)) {
-	 var i;
-	 for( i = 0; i < p.length; i++) {
-	 this.coordTranslate(p[i], x, y);
-	 }
-	 } else {
-	 p.X += x;
-	 p.Y += y;
-	 }
-	 },
-	 coordScale : function(p, x, y) {
-	 if(Ext.isArray(p)) {
-	 var i;
-	 for( i = 0; i < p.length; i++) {
-	 this.coordScale(p[i], x, y);
-	 }
-	 } else {
-	 p.X *= x;
-	 p.Y *= y;
-	 }
-	 },*/
 	vocabulary : {
 		"draw" : {
 			"line" : "addALineElement",
 			"triangle":"addASPConstraint",
 			"circle":"releaseConstraint",
 			"rectangle":"releaseConstraint",
-			//"poor match":"dummy"
 		},
 		"select" : {
 
@@ -474,8 +380,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			
 			return args;
 		},
-		"releaseConstraint" : function(data) {
-			
+		"releaseConstraint" : function(data) {		
 			var args,fr;
 			fr= this.canvasPoint2ModelPoint(data.from);
 			args={
@@ -497,7 +402,6 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		}
 		var cmd={};
 		console.log("data ",data," name ",shapeName)
-		//console.log("input:",arguments," voc",this.vocabulary[mode][shapeName])
 		cmd.name = this.vocabulary[mode][shapeName];
 		cmd.args = this.argsGen[cmd.name].call(this,data);
 		cmd.undo =this.Undoable[cmd.name];

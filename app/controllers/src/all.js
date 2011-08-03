@@ -18,6 +18,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		this.Root = new sketchitLib.Root({
 			options : this.modelOptions
 		});
+		window.Root=this.Root;
 		//this.Root.initList();
 
 		//init Renderer
@@ -160,7 +161,18 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		//redo button
 		this.bottomBar.getComponent(6).setHandler(this.redo, this);
 		this.bottomBar.getComponent(6).setDisabled(true);
+		//save button
+		this.bottomBar.getComponent(7).setHandler(this.save, this);
 
+		
+
+	},
+	save:function(){
+		var r=this.Root.doHandler({
+			name:"toPlainObject"
+		});
+		console.log("Root(plain): ",r);
+		
 	},
 	onOrientationchange : function() {
 		//alert("double tab")
@@ -199,7 +211,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 
 		if(e.touches.length === 0 || e.touches.length === 1) {
 			var result = this.shapeRecognizer.Recognize(this.inputStrokes, false), cmd;
-			result.data.modelOptions = this.modelOptions;
+			//result.data.modelOptions = this.modelOptions;
 			cmd = this.commandGen(result.name, this.mode, result.data);
 			if(cmd) {
 				this.Root.doHandler(cmd);
@@ -421,7 +433,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			return false;
 		}
 		var cmd = {};
-		console.log("data ", data, " name ", shapeName)
+		console.log("shape name:"+shapeName,"  data ", data)
 		cmd.name = this.vocabulary[mode][shapeName];
 		cmd.args = this.argsGen[cmd.name].call(this, data);
 		cmd.undo = this.Undoable[cmd.name];

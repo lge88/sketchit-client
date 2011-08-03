@@ -59,7 +59,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		pointSnapThreshold : 15,
 		snapToLine : true,
 		lineSnapThreshold : 5,
-		//snapToGrid : true,
+		snapToGrid : true,
 		grid : 10,
 		SPCSnapToDirection : true,
 		SPCSnapToDirectionThreshold : 0.2,

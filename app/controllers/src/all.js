@@ -58,11 +58,14 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		pointSnapThreshold : 15,
 		snapToLine : true,
 		lineSnapThreshold : 5,
-		snapToGrid : true,
+		//snapToGrid : true,
 		grid : 10,
 		SPCSnapToDirection : true,
-		SPCSnapThreshold : 0.2,
+		SPCSnapToDirectionThreshold : 0.2,
 		SPCTriangleSize : 10,
+		SPCSnapToNodeThreshold:25,
+		autoMergeNodeOnLine:true,
+		autoMergeNodeOnLineThreshold:1
 
 	},
 	viewOptions : {
@@ -115,13 +118,15 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		SPCGroundN : 10,
 		SPCPinRadius : 5,
 		SPCRollerRadius : 3,
+		SPCSnapToNodeThreshold:50
 
 	},
 	rescaleModelOptions : function() {
-		this.modelOptions.pointSnapThreshold = this.viewOptions.pointSnapThreshold / this.viewOptions.modelScale.sx//this.viewOptions.scale.sx;
-		this.modelOptions.lineSnapThreshold = this.viewOptions.lineSnapThreshold / this.viewOptions.modelScale.sx//this.viewOptions.scale.sx;
+		this.modelOptions.pointSnapThreshold = this.viewOptions.pointSnapThreshold / this.viewOptions.modelScale.sx/this.viewOptions.scale.sx;
+		this.modelOptions.lineSnapThreshold = this.viewOptions.lineSnapThreshold / this.viewOptions.modelScale.sx/this.viewOptions.scale.sx;
 		this.modelOptions.grid = this.viewOptions.grid / this.viewOptions.modelScale.sx;
 		this.modelOptions.SPCTriangleSize = this.viewOptions.SPCTriangleSize / this.viewOptions.modelScale.sx;
+		this.modelOptions.SPCSnapToNodeThreshold=this.viewOptions.SPCSnapToNodeThreshold/ this.viewOptions.modelScale.sx/this.viewOptions.scale.sx;
 	},
 	initHandlers : function() {
 

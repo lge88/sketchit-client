@@ -1,7 +1,7 @@
 sketchit.controllers.sketchitController = Ext.regController("sketchitController", {
 	initAll : function(options) {
 		//set options
-		this.setOptions(options);
+		//this.setOptions(options);
 
 		//init views
 		this.mainView = this.render({
@@ -16,17 +16,24 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 
 		//init model Root
 		this.Root = new sketchitLib.Root({
-			options : this.modelOptions
+			//options : this.modelOptions
 		});
 		window.Root = this.Root;
+		this.modelOptions = this.Root.options;
 		//this.Root.initList();
 
 		//init Renderer
 		this.Renderer = new sketchitLib.Renderer({
 			Root : this.Root,
 			Canvas : document.getElementById('workspace'),
-			options : this.viewOptions
+			ctx : document.getElementById('workspace').getContext("2d"),
+			//options : this.viewOptions
 		})
+		this.viewOptions = this.Renderer.options;
+
+		this.Root.renderer = this.Renderer;
+		this.Root.initOPS_Components();
+		this.Root.initObjectStores(this.Renderer);
 
 		this.onOrientationchange.call(this);
 
@@ -51,10 +58,10 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 
 	},
 	/*
-	setOptions : function(options) {
-	Ext.apply(this.options, options);
-	},*/
-	//mode : 'draw',
+	 setOptions : function(options) {
+	 Ext.apply(this.options, options);
+	 },*/
+	mode : 'draw',
 	modelOptions : {
 		mode : 'draw',
 		snapToNode : true,
@@ -89,7 +96,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		lineElementColor : 'rgb(0,0,255)',
 		lineElementWidth : 4,
 		dashStyle : {
-			dl : 10,                 //dash line interval
+			dl : 10,                   //dash line interval
 			r : 0.5  //the rate of solid line length to dash line interval
 		},
 
@@ -201,7 +208,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			Y : e.touches[0].pageY
 		}));
 		var l = this.inputStrokes.length;
-		this.Renderer.drawASingleStroke(this.inputStrokes[ l - 1], this.inputStrokes[ l - 2]);
+		this.Renderer.drawStroke(this.inputStrokes.slice( l - 2), this.viewOptions.inputStrokeWidth, this.viewOptions.inputStrokeStyle);
 	},
 	onTouchEnd : function(e, el, obj) {
 		var p = this.canvasPoint2ModelPoint(this.pagePoint2CanvasPoint({
@@ -214,7 +221,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			//result.data.modelOptions = this.modelOptions;
 			//cmd = this.commandGen(result.name, this.mode, result.data);
 
-			this.run(result, this.modelOptions)
+			this.run(result, this.mode, this.modelOptions, this.viewOptions)
 
 		} delete this.inputStrokes;
 		this.Renderer.refresh();
@@ -316,7 +323,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		this.Renderer.ctx.lineWidth = this.viewOptions.inputStokeWidth;
 	},
 	resetCanvasPosition : function(width, height, upleftX, upleftY) {
-		var w = width || this.mainView.getWidth(), h = height ||                      this.mainView.getHeight() -                       this.topBar.getHeight() -                       this.bottomBar.getHeight(), x = upleftX || 0, y = upleftY || this.topBar.getHeight();
+		var w = width || this.mainView.getWidth(), h = height ||                        this.mainView.getHeight() -                         this.topBar.getHeight() -                         this.bottomBar.getHeight(), x = upleftX || 0, y = upleftY || this.topBar.getHeight();
 		this.canvasWidth = w;
 		this.canvasHeight = h;
 		this.canvasUpLeftX = x;
@@ -357,17 +364,34 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		"draw" : {
 			"line" : {
 				command : "addALineElement",
-				argsGen : function(data) {
-					var fr, to;
+				argsGen : function(data, moptions, voptions) {
+					//console.log("args ", arguments)
+					var fr, to,result={};
 					fr = this.canvasPoint2ModelPoint(data.from);
 					to = this.canvasPoint2ModelPoint(data.to);
-					return [fr.X, fr.Y, to.X, to.Y];
+					//return [fr.X, fr.Y, to.X, to.Y];
+					result.x1=fr.X;
+					result.y1=fr.Y;
+					result.x2=to.X;
+					result.y2=to.Y;
+					if (moptions.snapToNode){
+						result.snapToNodeThreshold=moptions.snapToNodeThreshold;
+					}
+					if (moptions.snapToLine){
+						result.snapToLineThreshold=moptions.snapToLineThreshold;
+					}
+					if (moptions.snapToGrid){
+						result.grid=moptions.grid;
+					}
+					//console.log("args result: ",result)
+					 					
+					return result;
 				},
 				undo : true
 			},
 			"triangle" : {
 				command : "addASPConstraint",
-				argsGen : function(data) {
+				argsGen : function(data, moptions, voptions) {
 					var fr;
 					fr = this.canvasPoint2ModelPoint(data.from);
 					return [fr.X, fr.Y, "-angle", data.IndicativeAngle, "-show", true];
@@ -376,7 +400,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			},
 			"circle" : {
 				command : "releaseConstraint",
-				argsGen : function(data) {
+				argsGen : function(data, moptions, voptions) {
 					var cen;
 					cen = this.canvasPoint2ModelPoint(data.Centroid);
 					return [cen.X, cen.Y]
@@ -403,36 +427,42 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 
 	},
 
-	run : function(recognizeResult,moelOptions) {
+	run : function(recognizeResult, mode, modelOptions, viewOptions) {
 		//this.vocabulary
-		var obj,args,undo;
-		obj=this.vocabulary[this.modelOptions.mode][recognizeResult.name];
-		if (Ext.isDefined(obj)){
+		var obj, args, undo;
+		obj = this.vocabulary[mode][recognizeResult.name];
+		//console.log("args ",arguments)
+		if(Ext.isDefined(obj)) {
 			//cmd=obj.command;
-			args=obj.argsGen(recognizeResult.data,modelOptions).unshift(obj.command);
-			undo=obj.undo;
-			if(undo){
-				this.Root.runsave(args);
+			args=obj.argsGen.call(this,recognizeResult.data,modelOptions,viewOptions);
+			//console.log(temp)
+			if (!ut.isArray(args)){
+				args=[args];
+			}
+			args.unshift(obj.command);
+			console.log("args ",args)
+			undo = obj.undo;
+			if(undo) {
+				this.Root.runsave.apply(this.Root,args);
 				this.bottomBar.getComponent(5).setDisabled(false);
 				this.bottomBar.getComponent(6).setDisabled(true);
 			} else {
-				this.Root.runnotsave(args);
+				this.Root.runnotsave.apply(this.Root,args);
 			}
 		}
 		//var cmd=this.vocabulary[this.modelOptions.mode][recognizeResult.name].command,
-		
-		
-		/*if (){
-			
-		}
 
-		this.Root.run()
-		if(cmd) {
-			this.Root.doHandler(cmd);
-			if(cmd.undo) {
-				
-			}
-		}*/
+		/*if (){
+
+		 }
+
+		 this.Root.run()
+		 if(cmd) {
+		 this.Root.doHandler(cmd);
+		 if(cmd.undo) {
+
+		 }
+		 }*/
 
 	},
 	/*

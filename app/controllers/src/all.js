@@ -56,6 +56,38 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		// first render
 		this.Renderer.refresh();
 
+		//window.Root = Root;
+		/*
+		
+		window.xxx = {};
+		window.xxx.rt = this.Root;
+		window.xxx.rr = this.Renderer;
+		lib=sketchitLib;
+
+		xxx.rt.run("addARenderableComponent", new lib.Node({
+			X : 100,
+			Y : 100,
+			renderer:xxx.rr
+		}), xxx.rt.nodes, xxx.rr.theShapes);
+		console.log("xxx unsaveruns ", xxx.rt.unsavedRuns);
+		this.Renderer.refresh();*/
+		/*
+		xxx.rt.save();
+		xxx.rt.run("addARenderableComponent", new lib.Node({
+			X : 200,
+			Y : 200
+		}), xxx.rt.nodes, xxx.rr.theShapes);
+		xxx.rt.save();
+		xxx.rt.run("addARenderableComponent", new lib.Node({
+			X : 200,
+			Y : 200
+		}), xxx.rt.nodes, xxx.rr.theShapes);
+		xxx.rt.save();
+		//xxx.run("add", (new Batch()));
+		//xxx.save();
+
+		console.log("xxx ", xxx);*/
+
 	},
 	/*
 	 setOptions : function(options) {
@@ -96,7 +128,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		lineElementColor : 'rgb(0,0,255)',
 		lineElementWidth : 4,
 		dashStyle : {
-			dl : 10,                   //dash line interval
+			dl : 10,                    //dash line interval
 			r : 0.5  //the rate of solid line length to dash line interval
 		},
 
@@ -323,7 +355,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		this.Renderer.ctx.lineWidth = this.viewOptions.inputStokeWidth;
 	},
 	resetCanvasPosition : function(width, height, upleftX, upleftY) {
-		var w = width || this.mainView.getWidth(), h = height ||                        this.mainView.getHeight() -                         this.topBar.getHeight() -                         this.bottomBar.getHeight(), x = upleftX || 0, y = upleftY || this.topBar.getHeight();
+		var w = width || this.mainView.getWidth(), h = height ||                         this.mainView.getHeight() -                          this.topBar.getHeight() -                          this.bottomBar.getHeight(), x = upleftX || 0, y = upleftY || this.topBar.getHeight();
 		this.canvasWidth = w;
 		this.canvasHeight = h;
 		this.canvasUpLeftX = x;
@@ -366,25 +398,28 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 				command : "addALineElement",
 				argsGen : function(data, moptions, voptions) {
 					//console.log("args ", arguments)
-					var fr, to,result={};
+					var fr, to, result = {};
 					fr = this.canvasPoint2ModelPoint(data.from);
 					to = this.canvasPoint2ModelPoint(data.to);
 					//return [fr.X, fr.Y, to.X, to.Y];
-					result.x1=fr.X;
-					result.y1=fr.Y;
-					result.x2=to.X;
-					result.y2=to.Y;
-					if (moptions.snapToNode){
-						result.snapToNodeThreshold=moptions.snapToNodeThreshold;
+					result.x1 = fr.X;
+					result.y1 = fr.Y;
+					result.x2 = to.X;
+					result.y2 = to.Y;
+					if(moptions.snapToNode) {
+						result.snapToNodeThreshold = moptions.snapToNodeThreshold;
 					}
-					if (moptions.snapToLine){
-						result.snapToLineThreshold=moptions.snapToLineThreshold;
+					if(moptions.snapToLine) {
+						result.snapToLineThreshold = moptions.snapToLineThreshold;
 					}
-					if (moptions.snapToGrid){
-						result.grid=moptions.grid;
+					if(moptions.snapToGrid) {
+						result.grid = moptions.grid;
+					}
+					if(moptions.autoMergeNodeOnLine) {
+						result.autoMergeNodeOnLineThreshold = moptions.autoMergeNodeOnLineThreshold;
 					}
 					//console.log("args result: ",result)
-					 					
+
 					return result;
 				},
 				undo : true
@@ -434,20 +469,20 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		//console.log("args ",arguments)
 		if(Ext.isDefined(obj)) {
 			//cmd=obj.command;
-			args=obj.argsGen.call(this,recognizeResult.data,modelOptions,viewOptions);
+			args = obj.argsGen.call(this, recognizeResult.data, modelOptions, viewOptions);
 			//console.log(temp)
-			if (!ut.isArray(args)){
-				args=[args];
+			if(!ut.isArray(args)) {
+				args = [args];
 			}
 			args.unshift(obj.command);
-			console.log("args ",args)
+			console.log("args ", args)
 			undo = obj.undo;
 			if(undo) {
-				this.Root.runsave.apply(this.Root,args);
+				this.Root.runsave.apply(this.Root, args);
 				this.bottomBar.getComponent(5).setDisabled(false);
 				this.bottomBar.getComponent(6).setDisabled(true);
 			} else {
-				this.Root.runnotsave.apply(this.Root,args);
+				this.Root.runnotsave.apply(this.Root, args);
 			}
 		}
 		//var cmd=this.vocabulary[this.modelOptions.mode][recognizeResult.name].command,

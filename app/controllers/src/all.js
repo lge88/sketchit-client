@@ -29,11 +29,12 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			ctx : document.getElementById('workspace').getContext("2d"),
 			//options : this.viewOptions
 		})
+		window.Renderer = this.Renderer;
 		this.viewOptions = this.Renderer.options;
 
 		this.Root.renderer = this.Renderer;
 		this.Root.initOPS_Components();
-		this.Root.initObjectStores(this.Renderer);
+		this.Root.initObjectStores();
 
 		this.onOrientationchange.call(this);
 

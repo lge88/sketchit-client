@@ -15,26 +15,15 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		this.bottomBar = this.mainView.getDockedItems()[1];
 
 		//init model Root
-		this.Root = new sketchitLib.Root({
-			//options : this.modelOptions
-		});
+		this.Root = new sketchitLib.Root();
 		window.Root = this.Root;
-		this.modelOptions = this.Root.options;
-		//this.Root.initList();
-
+		
 		//init Renderer
 		this.Renderer = new sketchitLib.Renderer({
-			Root : this.Root,
-			Canvas : document.getElementById('workspace'),
+			canvas : document.getElementById('workspace'),
 			ctx : document.getElementById('workspace').getContext("2d"),
-			//options : this.viewOptions
-		})
+		})		
 		window.Renderer = this.Renderer;
-		this.viewOptions = this.Renderer.options;
-
-		this.Root.renderer = this.Renderer;
-		this.Root.initOPS_Components();
-		this.Root.initObjectStores();
 
 		this.onOrientationchange.call(this);
 
@@ -59,35 +48,35 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 
 		//window.Root = Root;
 		/*
-		
-		window.xxx = {};
-		window.xxx.rt = this.Root;
-		window.xxx.rr = this.Renderer;
-		lib=sketchitLib;
 
-		xxx.rt.run("addARenderableComponent", new lib.Node({
-			X : 100,
-			Y : 100,
-			renderer:xxx.rr
-		}), xxx.rt.nodes, xxx.rr.theShapes);
-		console.log("xxx unsaveruns ", xxx.rt.unsavedRuns);
-		this.Renderer.refresh();*/
+		 window.xxx = {};
+		 window.xxx.rt = this.Root;
+		 window.xxx.rr = this.Renderer;
+		 lib=sketchitLib;
+
+		 xxx.rt.run("addARenderableComponent", new lib.Node({
+		 X : 100,
+		 Y : 100,
+		 renderer:xxx.rr
+		 }), xxx.rt.nodes, xxx.rr.theShapes);
+		 console.log("xxx unsaveruns ", xxx.rt.unsavedRuns);
+		 this.Renderer.refresh();*/
 		/*
-		xxx.rt.save();
-		xxx.rt.run("addARenderableComponent", new lib.Node({
-			X : 200,
-			Y : 200
-		}), xxx.rt.nodes, xxx.rr.theShapes);
-		xxx.rt.save();
-		xxx.rt.run("addARenderableComponent", new lib.Node({
-			X : 200,
-			Y : 200
-		}), xxx.rt.nodes, xxx.rr.theShapes);
-		xxx.rt.save();
-		//xxx.run("add", (new Batch()));
-		//xxx.save();
+		 xxx.rt.save();
+		 xxx.rt.run("addARenderableComponent", new lib.Node({
+		 X : 200,
+		 Y : 200
+		 }), xxx.rt.nodes, xxx.rr.theShapes);
+		 xxx.rt.save();
+		 xxx.rt.run("addARenderableComponent", new lib.Node({
+		 X : 200,
+		 Y : 200
+		 }), xxx.rt.nodes, xxx.rr.theShapes);
+		 xxx.rt.save();
+		 //xxx.run("add", (new Batch()));
+		 //xxx.save();
 
-		console.log("xxx ", xxx);*/
+		 console.log("xxx ", xxx);*/
 
 	},
 	/*
@@ -95,93 +84,24 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 	 Ext.apply(this.options, options);
 	 },*/
 	mode : 'draw',
-	modelOptions : {
-		mode : 'draw',
-		snapToNode : true,
-		pointSnapThreshold : 15,
-		snapToLine : true,
-		lineSnapThreshold : 5,
-		snapToGrid : true,
-		grid : 10,
-		SPCSnapToDirection : true,
-		SPCSnapToDirectionThreshold : 0.2,
-		SPCTriangleSize : 10,
-		SPCSnapToNodeThreshold : 25,
-		autoMergeNodeOnLine : true,
-		autoMergeNodeOnLineThreshold : 1
+	drawAll : function() {
 
-	},
-	viewOptions : {
-		inputStokeStyle : "rgb(0,0,255)",
-		inputStrokeWidth : 2,
-		lineWidthUppeLimit : 5,
-		nodeSize : 2,
-		nodeColor : "rgb(255,0,0)",
-		shift : {
-			dx : 0,
-			dy : 0
-		},
-		scale : {
-			sx : 1,
-			sy : 1
-		},
-		backgroundColor : 'rgb(255,255,255)',
-		lineElementColor : 'rgb(0,0,255)',
-		lineElementWidth : 4,
-		dashStyle : {
-			dl : 10,                    //dash line interval
-			r : 0.5  //the rate of solid line length to dash line interval
-		},
-
-		modelScale : { //how many pixels per model length
-			sx : 2,
-			sy : 2
-		},
-		canvasOrigin : {
-			x : 0,
-			y : 0
-		},
-		showNodeId : false,
-		showElementId : false,
-		showMarks : false,
-
-		showGrid : true,
-		grid : 20,
-		gridWidth : 1,
-		gridColor : "rgba(0,0,0,0.3)",
-
-		pointSnapThreshold : 30,
-		lineSnapThreshold : 10,
-
-		SPCColor : 'rgb(0,0,0)',
-		SPCLineWidth : 2,
-		SPCTriangleSize : 20,
-		SPCGroundLength : 40,
-		SPCGroundThickness : 8,
-		SPCGroundN : 10,
-		SPCPinRadius : 5,
-		SPCRollerRadius : 3,
-		SPCSnapToNodeThreshold : 50
-
-	},
-	
-	drawAll:function(){
-		
 		//this.Root.grid.display(this.Renderer);
-		
-		
-		
+
 		this.Renderer.save();
-		this.Renderer.model2Canvas();	
+		this.Renderer.model2Canvas();
 		this.Root.elements.drawAll(this.Renderer);
 		this.Root.nodes.drawAll(this.Renderer);
 		this.Renderer.restore();
-		
-		
-		
+
 	},
-	
-	
+	clearScreen : function() {
+		this.Renderer.clear(this.Root.bgColor);
+	},
+	refresh : function() {
+		this.clearScreen();
+		this.drawAll();
+	},
 	rescaleModelOptions : function() {
 		this.modelOptions.pointSnapThreshold = this.viewOptions.pointSnapThreshold / this.viewOptions.modelScale.sx / this.viewOptions.scale.sx;
 		this.modelOptions.lineSnapThreshold = this.viewOptions.lineSnapThreshold / this.viewOptions.modelScale.sx / this.viewOptions.scale.sx;
@@ -374,7 +294,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		this.Renderer.ctx.lineWidth = this.viewOptions.inputStokeWidth;
 	},
 	resetCanvasPosition : function(width, height, upleftX, upleftY) {
-		var w = width || this.mainView.getWidth(), h = height ||                         this.mainView.getHeight() -                          this.topBar.getHeight() -                          this.bottomBar.getHeight(), x = upleftX || 0, y = upleftY || this.topBar.getHeight();
+		var w = width || this.mainView.getWidth(), h = height ||                          this.mainView.getHeight() -                           this.topBar.getHeight() -                           this.bottomBar.getHeight(), x = upleftX || 0, y = upleftY || this.topBar.getHeight();
 		this.canvasWidth = w;
 		this.canvasHeight = h;
 		this.canvasUpLeftX = x;

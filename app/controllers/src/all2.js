@@ -103,6 +103,18 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		});
 
 		//this.init Menu Handlers;
+		//run button
+		this.bottomBar.getComponent(0).getComponent(3).setHandler(function(){
+			console.log("run")
+			var tcl=this.Root.run("runStaticConstant");
+			console.log(tcl)
+			this.Root.run("runOpenSees",tcl);
+			//console.log();
+			
+			
+		}, this);
+		
+		
 		//clear button
 		this.bottomBar.getComponent(2).setHandler(this.clearAll, this);
 		//undo button
@@ -137,6 +149,12 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 
 	settings : {
 		mode : 'draw',
+		
+		modelScale:2.0,
+		loadScale:1.0,
+		viewPortScale : 1.0,
+		viewPortShiftX : 0.0,
+		viewPortShiftY : 0.0,
 
 		snapToNode : true,
 		snapToNodeThreshold : 15,
@@ -173,12 +191,11 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		inputStrokeStyle : "rgb(0,0,255)",
 		inputStrokeWidth : 2,
 
-		viewPortScale : 1.0,
-		viewPortShiftX : 0.0,
-		viewPortShiftY : 0.0,
+		
 
 		defaultLineELementType : sketchitLib.ElasticBeamColumn,
-		defaultGeomTransfId:2
+		defaultGeomTransfId:2,
+		defaultNodeLoadType:"load"
 
 	},
 	getCanvasCoordFromViewPort : function(p) {
@@ -267,10 +284,10 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		this.drawAll();
 	},
 	save : function() {
-		var r = this.Root.doHandler({
-			name : "toPlainObject"
-		});
-		console.log("Root(plain): ", r);
+		
+		console.log("toTcl");
+
+		console.log(this.Root.run("toTcl",this.settings.modelScale,this.settings.loadScale));
 
 	},
 	onOrientationchange : function() {
@@ -506,6 +523,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 					result.y2 = data.to.Y;
 					result.nT=settings.LoadSnapToNodeThreshold;
 					result.lT=settings.LoadSnapToLineThreshold;
+					result.nLoadType=settings.defaultNodeLoadType;
 					if(settings.snapToGrid) {
 						result.grid = settings.grid;
 					}

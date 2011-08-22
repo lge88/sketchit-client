@@ -113,6 +113,14 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		this.bottomBar.getComponent(6).setDisabled(true);
 		//save button
 		this.bottomBar.getComponent(7).setHandler(this.save, this);
+		
+		//mode toggle button
+		this.bottomBar.getComponent(11).on({
+			toggle:function(){			
+				this.settings.mode=this.bottomBar.getComponent(11).getPressed().text;				
+			},
+			scope:this
+		});
 
 	},
 	/*
@@ -148,7 +156,10 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		SPCSnapToNodeThreshold : 15,
 
 		circleSnapToSPCThreshold : 25,
-
+		
+		LoadSnapToNodeThreshold:15,
+		LoadSnapToLineThreshold:5,
+		
 		autoMergeNodeOnLine : true,
 		autoMergeNodeOnLineThreshold : 1,
 
@@ -159,7 +170,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		showSPC : true,
 
 		canvasBgColor : "rgb(255,255,255)",
-		inputStokeStyle : "rgb(0,0,255)",
+		inputStrokeStyle : "rgb(0,0,255)",
 		inputStrokeWidth : 2,
 
 		viewPortScale : 1.0,
@@ -167,6 +178,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		viewPortShiftY : 0.0,
 
 		defaultLineELementType : sketchitLib.ElasticBeamColumn,
+		defaultGeomTransfId:2
 
 	},
 	getCanvasCoordFromViewPort : function(p) {
@@ -211,8 +223,10 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		this.settings.viewPortShiftY = shiftY || 0.0;
 	},
 	applyInputStrokeStyle : function(scale) {
-		this.Renderer.ctx.strokeStyle = this.settings.inputStokeStyle;
-		this.Renderer.ctx.lineWidth = this.settings.inputStokeWidth / scale;
+		this.Renderer.ctx.strokeStyle = this.settings.inputStrokeStyle;
+		this.Renderer.ctx.lineWidth = this.settings.inputStrokeWidth / scale;
+		//console.log("scale",this.settings.inputStokeWidth / scale)
+		//console.log("lineWidth",this.Renderer.ctx.lineWidth)
 	},
 	applyGridStyle : function(scale) {
 		this.Renderer.ctx.strokeStyle = this.settings.gridLineStyle;
@@ -239,9 +253,10 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			this.Renderer.drawGrid(this.settings.grid, this.settings.grid, c1.X, c2.X, c1.Y, c2.Y);
 		}
 		this.Root.theElements.drawAll(this.Renderer, this.settings.viewPortScale);
-		this.Root.theNodes.drawAll(this.Renderer, this.settings.viewPortScale);
+		
 		this.Root.theSPCs.drawAll(this.Renderer, this.settings.viewPortScale);
-		//this.Root.theNodeLoads.drawAll(this.Renderer, this.settings.viewPortScale);
+		this.Root.thePatterns[0].Loads.drawAll(this.Renderer, this.settings.viewPortScale);
+		this.Root.theNodes.drawAll(this.Renderer, this.settings.viewPortScale);
 		//this.Root.theUniformLoads.drawAll(this.Renderer, this.settings.viewPortScale);
 
 	},
@@ -295,9 +310,8 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 
 		if(e.touches.length === 0 || e.touches.length === 1) {
 			var result = this.shapeRecognizer.Recognize(this.inputStrokes, false);
-			if(this.act(result, this.settings)) {
-				this.refresh();
-			}
+			this.act(result, this.settings)
+			this.refresh();
 		}
 		this.inputStrokes = [];
 
@@ -390,16 +404,10 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		this.refresh();
 	},
 	clearAll : function() {
-		this.Root.doHandler({
-			name : "clear",
-			args : {
-				key : "all"
-			}
-		});
-		//this.Root.initList();
-		//this.bottomBar.getComponent(5).setDisabled(true);
-		//this.bottomBar.getComponent(6).setDisabled(true);
-		this.Renderer.refresh();
+		//alert("clear")
+		//this.Root.run("clearAll");
+		this.Root.runsave.call(this.Root, "clearAll");
+		this.refresh();
 	},
 	undo : function() {
 		this.Root.undo();
@@ -429,6 +437,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 					result.x2 = data.to.X;
 					result.y2 = data.to.Y;
 					result.type = settings.defaultLineELementType;
+					result.geomTransfId = settings.defaultGeomTransfId;
 
 					if(settings.snapToNode) {
 						result.snapToNodeThreshold = settings.snapToNodeThreshold;
@@ -495,8 +504,14 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 					result.y1 = data.from.Y;
 					result.x2 = data.to.X;
 					result.y2 = data.to.Y;
+					result.nT=settings.LoadSnapToNodeThreshold;
+					result.lT=settings.LoadSnapToLineThreshold;
+					if(settings.snapToGrid) {
+						result.grid = settings.grid;
+					}
 					return result;
-				}
+				},
+				undo:true
 			},
 
 		}
@@ -506,20 +521,15 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 	act : function(recognizeResult, settings) {
 		var obj, args, undo;
 		obj = this.vocabulary[settings.mode][recognizeResult.name];
-		//console.log("args ",arguments)
 		if(Ext.isFunction(obj)) {
 			obj = obj.call(this);
-			console.log("obj fucntion", obj)
 		}
 		if(Ext.isDefined(obj) && Ext.isObject(obj)) {
-			//cmd=obj.command;
 			args = obj.argsGen.call(this, recognizeResult.data, settings);
-			//console.log(temp)
 			if(!ut.isArray(args)) {
 				args = [args];
 			}
 			args.unshift(obj.command);
-			console.log("args ", args)
 			undo = obj.undo;
 			if(undo) {
 				this.Root.runsave.apply(this.Root, args);
@@ -534,3 +544,4 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		return false;
 	},
 })
+window.Controller=sketchit.controllers.sketchitController;

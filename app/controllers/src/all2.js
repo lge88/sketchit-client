@@ -17,12 +17,12 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		//init model Root
 		this.Root = new sketchitLib.Root();
 		window.Root = this.Root;
-		
+
 		//init Renderer
 		this.Renderer = new sketchitLib.Renderer({
 			canvas : document.getElementById('workspace'),
 			ctx : document.getElementById('workspace').getContext("2d"),
-		})		
+		})
 		window.Renderer = this.Renderer;
 
 		this.onOrientationchange.call(this);
@@ -41,10 +41,10 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 
 		//init canvas transform
 
-		this.Renderer.initTransform();
+		//this.Renderer.initTransform();
 
 		// first render
-		this.Renderer.refresh();
+		this.refresh();
 
 		//window.Root = Root;
 		/*
@@ -78,36 +78,6 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 
 		 console.log("xxx ", xxx);*/
 
-	},
-	/*
-	 setOptions : function(options) {
-	 Ext.apply(this.options, options);
-	 },*/
-	mode : 'draw',
-	drawAll : function() {
-
-		//this.Root.grid.display(this.Renderer);
-
-		this.Renderer.save();
-		this.Renderer.model2Canvas();
-		this.Root.elements.drawAll(this.Renderer);
-		this.Root.nodes.drawAll(this.Renderer);
-		this.Renderer.restore();
-
-	},
-	clearScreen : function() {
-		this.Renderer.clear(this.Root.bgColor);
-	},
-	refresh : function() {
-		this.clearScreen();
-		this.drawAll();
-	},
-	rescaleModelOptions : function() {
-		this.modelOptions.pointSnapThreshold = this.viewOptions.pointSnapThreshold / this.viewOptions.modelScale.sx / this.viewOptions.scale.sx;
-		this.modelOptions.lineSnapThreshold = this.viewOptions.lineSnapThreshold / this.viewOptions.modelScale.sx / this.viewOptions.scale.sx;
-		this.modelOptions.grid = this.viewOptions.grid / this.viewOptions.modelScale.sx;
-		this.modelOptions.SPCTriangleSize = this.viewOptions.SPCTriangleSize / this.viewOptions.modelScale.sx;
-		this.modelOptions.SPCSnapToNodeThreshold = this.viewOptions.SPCSnapToNodeThreshold / this.viewOptions.modelScale.sx / this.viewOptions.scale.sx;
 	},
 	initHandlers : function() {
 
@@ -145,6 +115,133 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		this.bottomBar.getComponent(7).setHandler(this.save, this);
 
 	},
+	/*
+	 setOptions : function(options) {
+	 Ext.apply(this.options, options);
+	 },*/
+	canvasUpLeftX : undefined,
+	canvasUpLeftY : undefined,
+	canvasHeight : undefined,
+	canvasWidth : undefined,
+
+	mouseX : undefined,
+	mouseY : undefined,
+
+	settings : {
+		mode : 'draw',
+		snapToNode : true,
+		snapToNodeThreshold : 15,
+		snapToLine : true,
+		snapToLineThreshold : 5,
+		snapToGrid : true,
+		grid : 20,
+		gridLineWidth : 1,
+		gridLineStyle : "rgba(0,0,0,0.5)",
+		SPCSnapToDirection : true,
+		SPCSnapToDirectionThreshold : 0.2,
+		SPCTriangleSize : 10,
+		SPCSnapToNodeThreshold : 25,
+		autoMergeNodeOnLine : true,
+		autoMergeNodeOnLineThreshold : 1,
+
+		showNodeId : false,
+		showElementId : false,
+		showMarks : false,
+		showGrid : true,
+
+		canvasBgColor : "rgb(255,255,255)",
+		inputStokeStyle : "rgb(0,0,255)",
+		inputStrokeWidth : 2,
+
+		viewPortScale : 1.0,
+		viewPortShiftX : 0.0,
+		viewPortShiftY : 0.0,
+		
+		defaultLineELementType:sketchitLib.ElasticBeamColumn,
+
+	},
+	getCanvasCoordFromViewPort : function(p) {
+		return {
+			X : (p.X - this.settings.viewPortShiftX) / this.settings.viewPortScale,
+			Y : (p.Y - this.settings.viewPortShiftY) / this.settings.viewPortScale
+		}
+	},
+	getViewPortCoordFromCanvas : function(p) {
+		return {
+			X : p.X * this.settings.viewPortScale + this.settings.viewPortShiftX,
+			Y : p.Y * this.settings.viewPortScale + this.settings.viewPortShiftY,
+		}
+	},
+	getViewPortCoordFromPage : function(p) {
+		return {
+			X : p.X - this.canvasUpLeftX,
+			Y : this.canvasHeight - p.Y + this.canvasUpleftY
+		}
+	},
+	getCanvasCoordFromPage : function(p) {
+		return {
+			X : (p.X - this.canvasUpLeftX - this.settings.viewPortShiftX) / this.settings.viewPortScale,
+			Y : (this.canvasHeight - p.Y + this.canvasUpleftY - this.settings.viewPortShiftY) / this.settings.viewPortScale
+		}
+	},
+	resetCanvasPosition : function(width, height, upleftX, upleftY) {
+		this.canvasWidth = width || this.mainView.getWidth();
+		this.canvasHeight = height ||      this.mainView.getHeight() -      this.topBar.getHeight() -      this.bottomBar.getHeight();
+		this.canvasUpLeftX = upleftX || 0;
+		this.canvasUpleftY = upleftY || this.topBar.getHeight();
+	},
+	initCanvasTransform : function() {
+		this.Renderer.setTransform(1.0, 0, 0, -1.0, 0, this.canvasHeight);
+	},
+	applyViewPortTransform : function() {
+		this.Renderer.transform(this.settings.viewPortScale, 0, 0, this.settings.viewPortScale, this.settings.viewPortShiftX, this.settings.viewPortShiftY);
+	},
+	resetViewPort : function(scale, shiftX, shiftY) {
+		this.settings.viewPortScale = scale || 1.0;
+		this.settings.viewPortShiftX = shiftX || 0.0;
+		this.settings.viewPortShiftY = shiftY || 0.0;
+	},
+	applyInputStrokeStyle : function(scale) {
+		this.Renderer.ctx.strokeStyle = this.settings.inputStokeStyle;
+		this.Renderer.ctx.lineWidth = this.settings.inputStokeWidth / scale;
+	},
+	applyGridStyle : function(scale) {
+		this.Renderer.ctx.strokeStyle = this.settings.gridLineStyle;
+		this.Renderer.ctx.lineWidth = this.settings.gridLineWidth / scale;
+	},
+	clearScreen : function() {
+		this.Renderer.save();
+		this.initCanvasTransform();
+		this.Renderer.ctx.fillStyle = this.settings.canvasBgColor;
+		this.Renderer.ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
+		this.Renderer.restore();
+	},
+	drawAll : function() {
+
+		if(this.settings.showGrid) {
+			var c1 = this.getCanvasCoordFromViewPort({
+				X : 0,
+				Y : 0
+			}), c2 = this.getCanvasCoordFromViewPort({
+				X : this.canvasWidth,
+				Y : this.canvasHeight
+			});
+			this.applyGridStyle(this.settings.viewPortScale);
+			this.Renderer.drawGrid(this.settings.grid, this.settings.grid, c1.X, c2.X, c1.Y, c2.Y);
+		}
+		this.Root.theElements.drawAll(this.Renderer, this.settings.viewPortScale);
+		this.Root.theNodes.drawAll(this.Renderer, this.settings.viewPortScale);
+		//this.Root.theSPCs.drawAll(this.Renderer, this.settings.viewPortScale);
+		//this.Root.theNodeLoads.drawAll(this.Renderer, this.settings.viewPortScale);
+		//this.Root.theUniformLoads.drawAll(this.Renderer, this.settings.viewPortScale);
+
+	},
+	refresh : function() {
+		this.clearScreen();
+		this.initCanvasTransform();
+		this.applyViewPortTransform();
+		this.drawAll();
+	},
 	save : function() {
 		var r = this.Root.doHandler({
 			name : "toPlainObject"
@@ -153,55 +250,54 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 
 	},
 	onOrientationchange : function() {
-		//alert("double tab")
 		this.resetCanvasPosition();
-		this.Renderer.resetViewPort();
-		this.Renderer.refresh();
+		this.resetViewPort();
+		this.refresh();
 	},
 	onDoubleTap : function(e, el, obj) {
-		this.Renderer.resetViewPort();
-		this.Renderer.refresh();
+		this.resetViewPort();
+		this.refresh();
 	},
 	onTouchStart : function(e, el, obj) {
 		this.inputStrokes = [];
-
-		this.inputStrokes.push(this.pagePoint2CanvasPoint({
+		this.inputStrokes.push(this.getCanvasCoordFromPage({
 			X : e.touches[0].pageX,
 			Y : e.touches[0].pageY
 		}));
-
-		this.applyInputStrokeStyle();
-
+		//this.mouseX=e.touches[0].pageX;
+		//this.mouseY=e.touches[0].pageY;
 	},
 	onTouchMove : function(e, el, obj) {
-		this.inputStrokes.push(this.pagePoint2CanvasPoint({
+
+		this.inputStrokes.push(this.getCanvasCoordFromPage({
 			X : e.touches[0].pageX,
 			Y : e.touches[0].pageY
 		}));
 		var l = this.inputStrokes.length;
-		this.Renderer.drawStroke(this.inputStrokes.slice( l - 2), this.viewOptions.inputStrokeWidth, this.viewOptions.inputStrokeStyle);
+		this.applyInputStrokeStyle(this.settings.viewPortScale);
+		this.Renderer.drawLine(this.inputStrokes[ l - 2], this.inputStrokes[ l - 1]);
 	},
 	onTouchEnd : function(e, el, obj) {
-		var p = this.canvasPoint2ModelPoint(this.pagePoint2CanvasPoint({
-			X : e.changedTouches[0].pageX,
-			Y : e.changedTouches[0].pageY
-		}))
+		/*
+		 var p = this.canvasPoint2ModelPoint(this.pagePoint2CanvasPoint({
+		 X : e.changedTouches[0].pageX,
+		 Y : e.changedTouches[0].pageY
+		 }))*/
 
 		if(e.touches.length === 0 || e.touches.length === 1) {
-			var result = this.shapeRecognizer.Recognize(this.inputStrokes, false), cmd;
-			//result.data.modelOptions = this.modelOptions;
-			//cmd = this.commandGen(result.name, this.mode, result.data);
+			var result = this.shapeRecognizer.Recognize(this.inputStrokes, false);
+			if(this.act(result, this.settings)) {
+				this.refresh();
+			}
+		}
+		this.inputStrokes = [];
 
-			this.run(result, this.mode, this.modelOptions, this.viewOptions)
-
-		} delete this.inputStrokes;
-		this.Renderer.refresh();
 	},
 	onPinchStart : function(e, el, obj) {
-		var first = this.pagePoint2CanvasPoint({
+		var first = this.getCanvasCoordFromPage({
 			X : e.touches[0].pageX,
 			Y : e.touches[0].pageY
-		}), second = this.pagePoint2CanvasPoint({
+		}), second = this.getCanvasCoordFromPage({
 			X : e.touches[1].pageX,
 			Y : e.touches[1].pageY
 		});
@@ -209,20 +305,22 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			X : 0.5 * (first.X + second.X),
 			Y : 0.5 * (first.Y + second.Y)
 		};
+		/*
 		this.pinchScale = {
-			sx : 1.0,
-			sy : 1.0
-		};
+		sx : 1.0,
+		sy : 1.0
+		};*/
+		//this.pinchScale=1.0;
 	},
 	onPinch : function(e, el, obj) {
 		if(!Ext.isDefined(e.touches[0]) || !Ext.isDefined(e.touches[1])) {
 			return;
 		}
 
-		var first = this.pagePoint2CanvasPoint({
+		var first = this.getCanvasCoordFromPage({
 			X : e.touches[0].pageX,
 			Y : e.touches[0].pageY
-		}), second = this.pagePoint2CanvasPoint({
+		}), second = this.getCanvasCoordFromPage({
 			X : e.touches[1].pageX,
 			Y : e.touches[1].pageY
 		}), m11, m12, m21, m22, cx, cy, dx, dy;
@@ -230,77 +328,57 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			X : 0.5 * (first.X + second.X),
 			Y : 0.5 * (first.Y + second.Y)
 		};
-		this.pinchScale = {
-			sx : e.scale,
-			sy : e.scale
-		};
-		m11 = e.scale //* this.options.scale.sx;
+		/*
+		 this.pinchScale = {
+		 sx : e.scale,
+		 sy : e.scale
+		 };*/
+
+		m11 = e.scale;
+		//* this.options.scale.sx;
 		m12 = 0;
 		m21 = 0;
-		m22 = e.scale //* this.options.scale.sy;
-		cx = this.pinchTranslate1.X - this.pinchTranslate1.X * e.scale //* this.options.scale.sx;
-		cy = this.pinchTranslate1.Y - this.pinchTranslate1.Y * e.scale //* this.options.scale.sy;
-		dx = (this.pinchTranslate1.X - this.pinchTranslate0.X) * e.scale //* this.options.scale.sx;
-		dy = (this.pinchTranslate1.Y - this.pinchTranslate0.Y) * e.scale //* this.options.scale.sy;
-		this.Renderer.ctx.save();
+		m22 = e.scale;
+		//* this.options.scale.sy;
+		cx = this.pinchTranslate1.X - this.pinchTranslate1.X * e.scale;
+		//* this.options.scale.sx;
+		cy = this.pinchTranslate1.Y - this.pinchTranslate1.Y * e.scale;
+		//* this.options.scale.sy;
+		dx = (this.pinchTranslate1.X - this.pinchTranslate0.X) * e.scale;
+		//* this.options.scale.sx;
+		dy = (this.pinchTranslate1.Y - this.pinchTranslate0.Y) * e.scale;
+		//* this.options.scale.sy;
+		this.Renderer.save();
 
 		//this.Renderer.ctx.setTransform(m11, m12, m21, m22, cx + dx, cy + dy);
 		this.Renderer.ctx.transform(m11, m12, m21, m22, cx + dx, cy + dy);
+		/*
 
-		this.pinchScale = {
-			sx : m11,
-			sy : m22
-		};
+		 this.pinchScale = {
+		 sx : m11,
+		 sy : m22
+		 };*/
+		this.pinchScale = e.scale;
+		this.pinchShiftX = cx + dx;
+		this.pinchShiftY = cy + dy;
+		/*
 		this.pinchShift = {
-			dx : cx + dx,
-			dy : cy + dy
-		}
-		this.rescaleModelOptions();
+		dx : cx + dx,
+		dy : cy + dy
+		}*/
+		//this.rescaleModelOptions();
 
-		this.Renderer.refresh();
-		this.Renderer.ctx.restore();
+		this.clearScreen();
+		this.drawAll();
+		this.Renderer.restore();
 	},
 	onPinchEnd : function() {
-		this.viewOptions.shift = {
-			dx : this.viewOptions.scale.sx * this.pinchShift.dx + this.viewOptions.shift.dx,
-			dy : this.viewOptions.scale.sy * this.pinchShift.dy + this.viewOptions.shift.dy
-		};
-		this.viewOptions.scale = {
-			sx : this.pinchScale.sx * this.viewOptions.scale.sx,
-			sy : this.pinchScale.sy * this.viewOptions.scale.sy
-		};
-
-		this.Renderer.initTransform();
-		this.Renderer.ctx.transform(this.viewOptions.scale.sx, 0, 0, this.viewOptions.scale.sy, this.viewOptions.shift.dx, this.viewOptions.shift.dy);
-		this.Renderer.ctx.lineWidth = this.viewOptions.inputStokeWidth / this.viewOptions.scale.sx;
-		this.rescaleModelOptions();
-		this.Renderer.refresh();
-	},
-	pagePoint2CanvasPoint : function(p) {
-		return {
-			X : (p.X - this.canvasUpLeftX - this.viewOptions.shift.dx) / this.viewOptions.scale.sx,
-			Y : (this.canvasHeight - p.Y + this.canvasUpleftY - this.viewOptions.shift.dy) / this.viewOptions.scale.sy
-		}
-	},
-	canvasPoint2ModelPoint : function(p) {
-		return {
-			X : p.X / this.viewOptions.modelScale.sx,
-			Y : p.Y / this.viewOptions.modelScale.sy
-		}
-	},
-	applyInputStrokeStyle : function() {
-
-		this.Renderer.ctx.strokeStyle = this.viewOptions.inputStokeStyle;
-		this.Renderer.ctx.lineWidth = this.viewOptions.inputStokeWidth;
-	},
-	resetCanvasPosition : function(width, height, upleftX, upleftY) {
-		var w = width || this.mainView.getWidth(), h = height ||                          this.mainView.getHeight() -                           this.topBar.getHeight() -                           this.bottomBar.getHeight(), x = upleftX || 0, y = upleftY || this.topBar.getHeight();
-		this.canvasWidth = w;
-		this.canvasHeight = h;
-		this.canvasUpLeftX = x;
-		this.canvasUpleftY = y;
-		this.Renderer.width = this.canvasWidth;
-		this.Renderer.height = this.canvasHeight;
+		var scale, shiftX, shiftY;
+		scale = this.settings.viewPortScale * this.pinchScale;
+		shiftX = this.settings.viewPortScale * this.pinchShiftX + this.settings.viewPortShiftX; 
+		shiftY = this.settings.viewPortScale * this.pinchShiftY + this.settings.viewPortShiftY;
+		this.resetViewPort(scale, shiftX, shiftY);
+		this.refresh();
 	},
 	clearAll : function() {
 		this.Root.doHandler({
@@ -316,7 +394,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 	},
 	undo : function() {
 		this.Root.undo();
-		this.Renderer.refresh();
+		this.refresh();
 		this.bottomBar.getComponent(6).setDisabled(false);
 		if(this.Root.undoStack.length === 0) {
 			this.bottomBar.getComponent(5).setDisabled(true);
@@ -325,7 +403,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 	},
 	redo : function() {
 		this.Root.redo();
-		this.Renderer.refresh();
+		this.refresh();
 		this.bottomBar.getComponent(5).setDisabled(false);
 		if(this.Root.redoStack.length === 0) {
 			this.bottomBar.getComponent(6).setDisabled(true);
@@ -335,65 +413,67 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		"draw" : {
 			"line" : {
 				command : "addALineElement",
-				argsGen : function(data, moptions, voptions) {
-					//console.log("args ", arguments)
-					var fr, to, result = {};
-					fr = this.canvasPoint2ModelPoint(data.from);
-					to = this.canvasPoint2ModelPoint(data.to);
-					//return [fr.X, fr.Y, to.X, to.Y];
-					result.x1 = fr.X;
-					result.y1 = fr.Y;
-					result.x2 = to.X;
-					result.y2 = to.Y;
-					if(moptions.snapToNode) {
-						result.snapToNodeThreshold = moptions.snapToNodeThreshold;
+				argsGen : function(data, settings) {
+					var result = {};
+					result.x1 = data.from.X;
+					result.y1 = data.from.Y;
+					result.x2 = data.to.X;
+					result.y2 = data.to.Y;
+					result.type=settings.defaultLineELementType;
+					
+					if(settings.snapToNode) {
+						result.snapToNodeThreshold = settings.snapToNodeThreshold;
 					}
-					if(moptions.snapToLine) {
-						result.snapToLineThreshold = moptions.snapToLineThreshold;
+					if(settings.snapToLine) {
+						result.snapToLineThreshold = settings.snapToLineThreshold;
 					}
-					if(moptions.snapToGrid) {
-						result.grid = moptions.grid;
+					if(settings.snapToGrid) {
+						result.grid = settings.grid;
 					}
-					if(moptions.autoMergeNodeOnLine) {
-						result.autoMergeNodeOnLineThreshold = moptions.autoMergeNodeOnLineThreshold;
+					if(settings.autoMergeNodeOnLine) {
+						result.autoMergeNodeOnLineThreshold = settings.autoMergeNodeOnLineThreshold;
 					}
-					//console.log("args result: ",result)
-
 					return result;
 				},
 				undo : true
 			},
 			"triangle" : {
-				command : "addASPConstraint",
-				argsGen : function(data, moptions, voptions) {
-					var fr;
-					fr = this.canvasPoint2ModelPoint(data.from);
-					return [fr.X, fr.Y, "-angle", data.IndicativeAngle, "-show", true];
+				command : "addASPC",
+				argsGen : function(data, settings) {
+					var result = {};
+					result.topX = data.from.X;
+					result.topY = data.from.Y;
+					return result;
 				},
 				undo : true
 			},
 			"circle" : {
-				command : "releaseConstraint",
-				argsGen : function(data, moptions, voptions) {
-					var cen;
-					cen = this.canvasPoint2ModelPoint(data.Centroid);
-					return [cen.X, cen.Y]
+				command : "releaseASPC",
+				argsGen : function(data, settings) {
+					var result = {};
+					result.cenX = data.Centroid.X;
+					result.cenY = data.Centroid.Y;
+					return result;
 				},
 				undo : true
 			},
-			//"rectangle" : "circle",
+			"rectangle" : function() {
+				return this.vocabulary["draw"]["circle"];
+			},
 		},
 		"select" : {
 
 		},
 		"load" : {
 			"line" : {
-				command : "addANodeLoad",
-				argsGen : function(data) {
-					var fr, to;
-					fr = this.canvasPoint2ModelPoint(data.from);
-					to = this.canvasPoint2ModelPoint(data.to);
-					return [fr.X, fr.Y, to.X, to.Y, "-scale"];
+				command : "addALoad",
+				argsGen : function(data, settings) {
+					var result = {};
+					result.x1 = data.from.X;
+					result.y1 = data.from.Y;
+					result.x2 = data.to.X;
+					result.y2 = data.to.Y;
+					return result;
 				}
 			},
 
@@ -401,14 +481,17 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 
 	},
 
-	run : function(recognizeResult, mode, modelOptions, viewOptions) {
-		//this.vocabulary
+	act : function(recognizeResult, settings) {
 		var obj, args, undo;
-		obj = this.vocabulary[mode][recognizeResult.name];
+		obj = this.vocabulary[settings.mode][recognizeResult.name];
 		//console.log("args ",arguments)
-		if(Ext.isDefined(obj)) {
+		if(Ext.isFunction(obj)) {
+			obj = obj.call(this);
+			console.log("obj fucntion", obj)
+		}
+		if(Ext.isDefined(obj) && Ext.isObject(obj)) {
 			//cmd=obj.command;
-			args = obj.argsGen.call(this, recognizeResult.data, modelOptions, viewOptions);
+			args = obj.argsGen.call(this, recognizeResult.data, settings);
 			//console.log(temp)
 			if(!ut.isArray(args)) {
 				args = [args];
@@ -423,89 +506,9 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			} else {
 				this.Root.runnotsave.apply(this.Root, args);
 			}
+			return true;
 		}
-		//var cmd=this.vocabulary[this.modelOptions.mode][recognizeResult.name].command,
-
-		/*if (){
-
-		 }
-
-		 this.Root.run()
-		 if(cmd) {
-		 this.Root.doHandler(cmd);
-		 if(cmd.undo) {
-
-		 }
-		 }*/
-
+		console.log("no action, obj: ", obj)
+		return false;
 	},
-	/*
-	 argsGen : {
-	 "addALineElement" : function(data) {
-	 var args, fr, to;
-	 fr = this.canvasPoint2ModelPoint(data.from);
-	 to = this.canvasPoint2ModelPoint(data.to);
-	 args = {
-	 x1 : fr.X,
-	 y1 : fr.Y,
-	 x2 : to.X,
-	 y2 : to.Y,
-	 }
-	 return args;
-	 },
-	 "addASPConstraint" : function(data) {
-
-	 var args, fr;
-	 fr = this.canvasPoint2ModelPoint(data.from);
-	 args = {
-	 x : fr.X,
-	 y : fr.Y,
-	 angle : data.IndicativeAngle,
-	 show : true
-	 }
-
-	 return args;
-	 },
-	 "releaseConstraint" : function(data) {
-	 var args, fr;
-	 fr = this.canvasPoint2ModelPoint(data.from);
-	 args = {
-	 x : fr.X,
-	 y : fr.Y,
-	 }
-	 return args;
-	 },
-	 "addANodeLoad" : function(data) {
-	 var args, fr, to;
-	 fr = this.canvasPoint2ModelPoint(data.from);
-	 to = this.canvasPoint2ModelPoint(data.to);
-	 args = {
-	 x1 : fr.X,
-	 y1 : fr.Y,
-	 x2 : to.X,
-	 y2 : to.Y,
-	 }
-	 return args;
-	 },
-	 },
-	 Undoable : {
-	 "addALineElement" : true,
-	 "addASPConstraint" : true,
-	 "releaseConstraint" : true,
-	 "addANodeLoad" : true
-	 },*/
-
-	commandGen : function(shapeName, mode, data) {
-		if(shapeName === "poor match") {
-			return false;
-		}
-		var cmd = {};
-		console.log("shape name:" + shapeName, "  data ", data)
-		cmd.name = this.vocabulary[mode][shapeName];
-		cmd.args = this.argsGen[cmd.name].call(this, data);
-		cmd.undo = this.Undoable[cmd.name];
-
-		return cmd;
-
-	}
 })

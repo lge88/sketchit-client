@@ -129,18 +129,26 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 
 	settings : {
 		mode : 'draw',
+
 		snapToNode : true,
 		snapToNodeThreshold : 15,
+
 		snapToLine : true,
 		snapToLineThreshold : 5,
+
 		snapToGrid : true,
 		grid : 20,
 		gridLineWidth : 1,
 		gridLineStyle : "rgba(0,0,0,0.5)",
+
 		SPCSnapToDirection : true,
 		SPCSnapToDirectionThreshold : 0.2,
-		SPCTriangleSize : 10,
-		SPCSnapToNodeThreshold : 25,
+
+		SPCSnapToNode : true,
+		SPCSnapToNodeThreshold : 15,
+
+		circleSnapToSPCThreshold : 25,
+
 		autoMergeNodeOnLine : true,
 		autoMergeNodeOnLineThreshold : 1,
 
@@ -148,6 +156,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		showElementId : false,
 		showMarks : false,
 		showGrid : true,
+		showSPC : true,
 
 		canvasBgColor : "rgb(255,255,255)",
 		inputStokeStyle : "rgb(0,0,255)",
@@ -156,8 +165,8 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		viewPortScale : 1.0,
 		viewPortShiftX : 0.0,
 		viewPortShiftY : 0.0,
-		
-		defaultLineELementType:sketchitLib.ElasticBeamColumn,
+
+		defaultLineELementType : sketchitLib.ElasticBeamColumn,
 
 	},
 	getCanvasCoordFromViewPort : function(p) {
@@ -186,7 +195,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 	},
 	resetCanvasPosition : function(width, height, upleftX, upleftY) {
 		this.canvasWidth = width || this.mainView.getWidth();
-		this.canvasHeight = height ||      this.mainView.getHeight() -      this.topBar.getHeight() -      this.bottomBar.getHeight();
+		this.canvasHeight = height ||       this.mainView.getHeight() -       this.topBar.getHeight() -       this.bottomBar.getHeight();
 		this.canvasUpLeftX = upleftX || 0;
 		this.canvasUpleftY = upleftY || this.topBar.getHeight();
 	},
@@ -231,7 +240,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		}
 		this.Root.theElements.drawAll(this.Renderer, this.settings.viewPortScale);
 		this.Root.theNodes.drawAll(this.Renderer, this.settings.viewPortScale);
-		//this.Root.theSPCs.drawAll(this.Renderer, this.settings.viewPortScale);
+		this.Root.theSPCs.drawAll(this.Renderer, this.settings.viewPortScale);
 		//this.Root.theNodeLoads.drawAll(this.Renderer, this.settings.viewPortScale);
 		//this.Root.theUniformLoads.drawAll(this.Renderer, this.settings.viewPortScale);
 
@@ -375,7 +384,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 	onPinchEnd : function() {
 		var scale, shiftX, shiftY;
 		scale = this.settings.viewPortScale * this.pinchScale;
-		shiftX = this.settings.viewPortScale * this.pinchShiftX + this.settings.viewPortShiftX; 
+		shiftX = this.settings.viewPortScale * this.pinchShiftX + this.settings.viewPortShiftX;
 		shiftY = this.settings.viewPortScale * this.pinchShiftY + this.settings.viewPortShiftY;
 		this.resetViewPort(scale, shiftX, shiftY);
 		this.refresh();
@@ -419,8 +428,8 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 					result.y1 = data.from.Y;
 					result.x2 = data.to.X;
 					result.y2 = data.to.Y;
-					result.type=settings.defaultLineELementType;
-					
+					result.type = settings.defaultLineELementType;
+
 					if(settings.snapToNode) {
 						result.snapToNodeThreshold = settings.snapToNodeThreshold;
 					}
@@ -443,6 +452,18 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 					var result = {};
 					result.topX = data.from.X;
 					result.topY = data.from.Y;
+					result.angle = data.IndicativeAngle;
+					result.show = settings.showSPC;
+
+					if(settings.SPCSnapToDirection) {
+						result.dT = settings.SPCSnapToDirectionThreshold;
+					}
+					if(settings.SPCSnapToNode) {
+						result.nT = settings.SPCSnapToNodeThreshold;
+					}
+					if(settings.snapToGrid) {
+						result.grid = settings.grid;
+					}
 					return result;
 				},
 				undo : true
@@ -453,6 +474,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 					var result = {};
 					result.cenX = data.Centroid.X;
 					result.cenY = data.Centroid.Y;
+					result.t = settings.circleSnapToSPCThreshold;
 					return result;
 				},
 				undo : true

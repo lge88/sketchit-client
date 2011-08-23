@@ -112,14 +112,15 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 				method : 'POST',
 				scope : this,
 				success : function(result) {
+					//console.log(result)
+					
 					this.Root.run("loadResultData", result.responseText);
-					this.Root.runsave("set",this.Root,"deformationAvailable",true);
+					this.Root.runsave("set", this.Root, "deformationAvailable", true);
 					//this.deformationAvailable = true;
-					this.autoSetDeformationScale(this.settings.maxDeformationOnScreen);
+					//this.autoSetDeformationScale(this.settings.maxDeformationOnScreen);
 					this.refresh();
 				}
 			});
-
 
 		}, this);
 		//clear button
@@ -154,8 +155,6 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 	mouseX : undefined,
 	mouseY : undefined,
 
-	
-
 	settings : {
 		mode : 'draw',
 
@@ -166,8 +165,9 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		viewPortShiftY : 0.0,
 
 		showDeformation : true,
-		deformationScale : 200,
+		deformationScale : 2000,
 		maxDeformationOnScreen : 40,
+		deformationResolution: 20,
 
 		snapToNode : true,
 		snapToNodeThreshold : 15,
@@ -206,7 +206,12 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 
 		defaultLineELementType : sketchitLib.ElasticBeamColumn,
 		defaultGeomTransfId : 2,
-		defaultNodeLoadType : "load"
+		defaultNodeLoadType : "load",
+
+		UniformElementLoadDirectionThreshold : 0.3,
+		UniformElementLoadSnapToLineThreshold : 15,
+		
+		
 
 	},
 	getCanvasCoordFromViewPort : function(p) {
@@ -235,7 +240,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 	},
 	resetCanvasPosition : function(width, height, upleftX, upleftY) {
 		this.canvasWidth = width || this.mainView.getWidth();
-		this.canvasHeight = height ||         this.mainView.getHeight() -         this.topBar.getHeight() -         this.bottomBar.getHeight();
+		this.canvasHeight = height ||          this.mainView.getHeight() -          this.topBar.getHeight() -          this.bottomBar.getHeight();
 		this.canvasUpLeftX = upleftX || 0;
 		this.canvasUpleftY = upleftY || this.topBar.getHeight();
 	},
@@ -299,6 +304,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		this.drawObjectStore(this.Root.theNodes, "display", this.Renderer, this.settings.viewPortScale);
 		if(this.Root.deformationAvailable && this.settings.showDeformation) {
 			this.drawObjectStore(this.Root.theNodes, "displayDeformation", this.Renderer, this.settings.viewPortScale, this.settings.deformationScale);
+			this.drawObjectStore(this.Root.theElements, "displayDeformation", this.Renderer, this.settings.viewPortScale, this.settings.deformationScale,this.settings.deformationResolution);
 		}
 	},
 	refresh : function() {
@@ -555,6 +561,22 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 				},
 				undo : true
 			},
+			"squareBracket" : {
+				command : "addUniformElementLoad",
+				argsGen : function(data, settings) {
+					var result = {};
+					result.x1 = data.from.X;
+					result.y1 = data.from.Y;
+					result.x2 = data.to.X;
+					result.y2 = data.to.Y;
+					result.x3 = data.MidPoint.X;
+					result.y3 = data.MidPoint.Y;
+					result.aT = settings.UniformElementLoadDirectionThreshold;
+					result.lT = settings.UniformElementLoadSnapToLineThreshold;
+					return result;
+				},
+				undo : true
+			},
 
 		}
 
@@ -563,6 +585,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 	act : function(recognizeResult, settings) {
 		var obj, args, undo;
 		obj = this.vocabulary[settings.mode][recognizeResult.name];
+		console.log("obj: ", obj, " recognize result ", recognizeResult);
 		if(Ext.isFunction(obj)) {
 			obj = obj.call(this);
 		}
@@ -582,7 +605,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			}
 			return true;
 		}
-		console.log("no action, obj: ", obj)
+
 		return false;
 	},
 })

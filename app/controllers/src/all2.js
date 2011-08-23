@@ -104,17 +104,24 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 
 		//this.init Menu Handlers;
 		//run button
-		this.bottomBar.getComponent(0).getComponent(3).setHandler(function(){
-			console.log("run")
-			var tcl=this.Root.run("runStaticConstant");
-			console.log(tcl)
-			this.Root.run("runOpenSees",tcl);
-			//console.log();
-			
-			
+		this.bottomBar.getComponent(0).getComponent(3).setHandler(function() {
+			var tcl = this.Root.run("runStaticConstant");
+			ut.Ajax.request({
+				url : '/cgi-bin/lge/sketchit/run.ops',
+				params : tcl,
+				method : 'POST',
+				scope : this,
+				success : function(result) {
+					this.Root.run("loadResultData", result.responseText);
+					this.Root.runsave("set",this.Root,"deformationAvailable",true);
+					//this.deformationAvailable = true;
+					this.autoSetDeformationScale(this.settings.maxDeformationOnScreen);
+					this.refresh();
+				}
+			});
+
+
 		}, this);
-		
-		
 		//clear button
 		this.bottomBar.getComponent(2).setHandler(this.clearAll, this);
 		//undo button
@@ -125,13 +132,13 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		this.bottomBar.getComponent(6).setDisabled(true);
 		//save button
 		this.bottomBar.getComponent(7).setHandler(this.save, this);
-		
+
 		//mode toggle button
 		this.bottomBar.getComponent(11).on({
-			toggle:function(){			
-				this.settings.mode=this.bottomBar.getComponent(11).getPressed().text;				
+			toggle : function() {
+				this.settings.mode = this.bottomBar.getComponent(11).getPressed().text;
 			},
-			scope:this
+			scope : this
 		});
 
 	},
@@ -147,14 +154,20 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 	mouseX : undefined,
 	mouseY : undefined,
 
+	
+
 	settings : {
 		mode : 'draw',
-		
-		modelScale:2.0,
-		loadScale:1.0,
+
+		modelScale : 2.0,
+		loadScale : 1.0,
 		viewPortScale : 1.0,
 		viewPortShiftX : 0.0,
 		viewPortShiftY : 0.0,
+
+		showDeformation : true,
+		deformationScale : 200,
+		maxDeformationOnScreen : 40,
 
 		snapToNode : true,
 		snapToNodeThreshold : 15,
@@ -174,10 +187,10 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		SPCSnapToNodeThreshold : 15,
 
 		circleSnapToSPCThreshold : 25,
-		
-		LoadSnapToNodeThreshold:15,
-		LoadSnapToLineThreshold:5,
-		
+
+		LoadSnapToNodeThreshold : 15,
+		LoadSnapToLineThreshold : 5,
+
 		autoMergeNodeOnLine : true,
 		autoMergeNodeOnLineThreshold : 1,
 
@@ -191,11 +204,9 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		inputStrokeStyle : "rgb(0,0,255)",
 		inputStrokeWidth : 2,
 
-		
-
 		defaultLineELementType : sketchitLib.ElasticBeamColumn,
-		defaultGeomTransfId:2,
-		defaultNodeLoadType:"load"
+		defaultGeomTransfId : 2,
+		defaultNodeLoadType : "load"
 
 	},
 	getCanvasCoordFromViewPort : function(p) {
@@ -224,7 +235,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 	},
 	resetCanvasPosition : function(width, height, upleftX, upleftY) {
 		this.canvasWidth = width || this.mainView.getWidth();
-		this.canvasHeight = height ||       this.mainView.getHeight() -       this.topBar.getHeight() -       this.bottomBar.getHeight();
+		this.canvasHeight = height ||         this.mainView.getHeight() -         this.topBar.getHeight() -         this.bottomBar.getHeight();
 		this.canvasUpLeftX = upleftX || 0;
 		this.canvasUpleftY = upleftY || this.topBar.getHeight();
 	},
@@ -249,12 +260,24 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		this.Renderer.ctx.strokeStyle = this.settings.gridLineStyle;
 		this.Renderer.ctx.lineWidth = this.settings.gridLineWidth / scale;
 	},
+	autoSetDeformationScale : function(maxDispOnScreen) {
+		var a = this.Root.theNodes.getAbsMax("dispX"), b = this.Root.theNodes.getAbsMax("dispY"), m = a > b ? a : b;
+		this.settings.deformationScale = maxDispOnScreen / m;
+	},
 	clearScreen : function() {
 		this.Renderer.save();
 		this.initCanvasTransform();
 		this.Renderer.ctx.fillStyle = this.settings.canvasBgColor;
 		this.Renderer.ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
 		this.Renderer.restore();
+	},
+	drawObjectStore : function(store, FcnName) {
+		var i, args = Array.prototype.slice.call(arguments, 2);
+		for( i = 0; i < store.max + 1; i++) {
+			if(ut.isDefined(store[i])) {
+				store[i][FcnName].apply(store[i], args);
+			}
+		}
 	},
 	drawAll : function() {
 
@@ -269,13 +292,14 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 			this.applyGridStyle(this.settings.viewPortScale);
 			this.Renderer.drawGrid(this.settings.grid, this.settings.grid, c1.X, c2.X, c1.Y, c2.Y);
 		}
-		this.Root.theElements.drawAll(this.Renderer, this.settings.viewPortScale);
-		
-		this.Root.theSPCs.drawAll(this.Renderer, this.settings.viewPortScale);
-		this.Root.thePatterns[0].Loads.drawAll(this.Renderer, this.settings.viewPortScale);
-		this.Root.theNodes.drawAll(this.Renderer, this.settings.viewPortScale);
-		//this.Root.theUniformLoads.drawAll(this.Renderer, this.settings.viewPortScale);
 
+		this.drawObjectStore(this.Root.theElements, "display", this.Renderer, this.settings.viewPortScale);
+		this.drawObjectStore(this.Root.theSPCs, "display", this.Renderer, this.settings.viewPortScale);
+		this.drawObjectStore(this.Root.thePatterns[0].Loads, "display", this.Renderer, this.settings.viewPortScale);
+		this.drawObjectStore(this.Root.theNodes, "display", this.Renderer, this.settings.viewPortScale);
+		if(this.Root.deformationAvailable && this.settings.showDeformation) {
+			this.drawObjectStore(this.Root.theNodes, "displayDeformation", this.Renderer, this.settings.viewPortScale, this.settings.deformationScale);
+		}
 	},
 	refresh : function() {
 		this.clearScreen();
@@ -284,10 +308,10 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		this.drawAll();
 	},
 	save : function() {
-		
+
 		console.log("toTcl");
 
-		console.log(this.Root.run("toTcl",this.settings.modelScale,this.settings.loadScale));
+		console.log(this.Root.run("toTcl", this.settings.modelScale, this.settings.loadScale));
 
 	},
 	onOrientationchange : function() {
@@ -521,15 +545,15 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 					result.y1 = data.from.Y;
 					result.x2 = data.to.X;
 					result.y2 = data.to.Y;
-					result.nT=settings.LoadSnapToNodeThreshold;
-					result.lT=settings.LoadSnapToLineThreshold;
-					result.nLoadType=settings.defaultNodeLoadType;
+					result.nT = settings.LoadSnapToNodeThreshold;
+					result.lT = settings.LoadSnapToLineThreshold;
+					result.nLoadType = settings.defaultNodeLoadType;
 					if(settings.snapToGrid) {
 						result.grid = settings.grid;
 					}
 					return result;
 				},
-				undo:true
+				undo : true
 			},
 
 		}
@@ -562,4 +586,4 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		return false;
 	},
 })
-window.Controller=sketchit.controllers.sketchitController;
+window.Controller = sketchit.controllers.sketchitController;

@@ -117,7 +117,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 					this.Root.run("loadResultData", result.responseText);
 					this.Root.runsave("set", this.Root, "deformationAvailable", true);
 					//this.deformationAvailable = true;
-					//this.autoSetDeformationScale(this.settings.maxDeformationOnScreen);
+					this.autoSetDeformationScale(this.settings.maxDeformationOnScreen);
 					this.refresh();
 				}
 			});

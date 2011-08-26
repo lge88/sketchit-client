@@ -107,7 +107,7 @@ sketchit.controllers.sketchitController = Ext.regController("sketchitController"
 		this.bottomBar.getComponent(0).getComponent(3).setHandler(function() {
 			var tcl = this.Root.run("runStaticConstant");
 			ut.Ajax.request({
-				url : '/cgi-bin/lge/sketchit/run.ops',
+				url : '/cgi-bin/lge/directFEAServer/run.ops',
 				params : tcl,
 				method : 'POST',
 				scope : this,

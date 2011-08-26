@@ -1,0 +1,3 @@
+[submodule "lib/directFEAClient"]
+	path = lib/directFEAClient
+	url = git@github.com:geli1988/directFEAClient.git

@@ -6,7 +6,6 @@ Ext.regApplication({
 	 * This is called automatically when the page loads. Here we set up the main component on the page - the Viewport
 	 */
 	launch : function() {
-		
 
 		sketchit.controllers.main = Ext.regController("main", {
 			initAll : function(options) {
@@ -248,7 +247,7 @@ Ext.regApplication({
 			},
 			resetCanvasPosition : function(width, height, upleftX, upleftY) {
 				this.canvasWidth = width || this.mainView.getWidth();
-				this.canvasHeight = height ||           this.mainView.getHeight() -           this.topBar.getHeight() -           this.bottomBar.getHeight();
+				this.canvasHeight = height || this.mainView.getHeight() - this.topBar.getHeight() - this.bottomBar.getHeight();
 				this.canvasUpLeftX = upleftX || 0;
 				this.canvasUpleftY = upleftY || this.topBar.getHeight();
 			},
@@ -354,7 +353,7 @@ Ext.regApplication({
 				}));
 				var l = this.inputStrokes.length;
 				this.applyInputStrokeStyle(this.settings.viewPortScale);
-				this.Renderer.drawLine(this.inputStrokes[ l - 2], this.inputStrokes[ l - 1]);
+				this.Renderer.drawLine(this.inputStrokes[l - 2], this.inputStrokes[l - 1]);
 			},
 			onTouchEnd : function(e, el, obj) {
 				/*
@@ -618,7 +617,7 @@ Ext.regApplication({
 			},
 		})
 		window.Ctrl = sketchit.controllers.main;
-		
+
 		Ext.dispatch({
 			controller : 'main',
 			action : 'initAll',

@@ -24,11 +24,11 @@ Ext.regApplication({
 				this.bottomBar = this.mainView.getDockedItems()[1];
 
 				//init model Root
-				this.Root = new sketchitLib.Root();
+				this.Root = new DirectFEA.Root();
 				window.Root = this.Root;
 
 				//init Renderer
-				this.Renderer = new sketchitLib.Renderer({
+				this.Renderer = new DirectFEA.Renderer({
 					canvas : document.getElementById('workspace'),
 					ctx : document.getElementById('workspace').getContext("2d"),
 				})
@@ -61,7 +61,7 @@ Ext.regApplication({
 				 window.xxx = {};
 				 window.xxx.rt = this.Root;
 				 window.xxx.rr = this.Renderer;
-				 lib=sketchitLib;
+				 lib=DirectFEA;
 
 				 xxx.rt.run("addARenderableComponent", new lib.Node({
 				 X : 100,
@@ -213,7 +213,7 @@ Ext.regApplication({
 				inputStrokeStyle : "rgb(0,0,255)",
 				inputStrokeWidth : 2,
 
-				defaultLineELementType : sketchitLib.ElasticBeamColumn,
+				defaultLineELementType : DirectFEA.ElasticBeamColumn,
 				defaultGeomTransfId : 2,
 				defaultNodeLoadType : "load",
 
@@ -601,15 +601,15 @@ Ext.regApplication({
 					if(!ut.isArray(args)) {
 						args = [args];
 					}
-					args.unshift(obj.command);
+					
+					//args.unshift(obj.command);
 					undo = obj.undo;
-					if(undo) {
-						this.Root.runsave.apply(this.Root, args);
+					this.Root[obj.command](args);
+					if(undo) {					
+						this.Root.commit();
 						this.bottomBar.getComponent(5).setDisabled(false);
 						this.bottomBar.getComponent(6).setDisabled(true);
-					} else {
-						this.Root.runnotsave.apply(this.Root, args);
-					}
+					} 
 					return true;
 				}
 

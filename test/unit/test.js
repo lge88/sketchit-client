@@ -1,4 +1,4 @@
-var myApp = new sketchitLib.Root({});
+var myApp = new DirectFEA.Root({});
 myApp.init();
 
 myApp.doHandler({

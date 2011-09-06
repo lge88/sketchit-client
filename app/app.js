@@ -39,6 +39,7 @@
 					this.settings = {};
 					Ext.apply(this.settings, {
 						mode : 'draw',
+						analysisMode : "auto", //auto or manual
 
 						modelScale : 2.0,
 						loadScale : 1.0,
@@ -48,6 +49,7 @@
 
 						showDeformation : true,
 						deformationScale : 2000,
+						autoDeformationScale : true,
 						maxDeformationOnScreen : 40,
 						deformationResolution : 20,
 
@@ -117,39 +119,6 @@
 
 					// first render
 					this.refresh();
-
-					//window.Domain = Domain;
-					/*
-
-					 window.xxx = {};
-					 window.xxx.rt = this.Domain;
-					 window.xxx.rr = this.Renderer;
-					 lib=DirectFEA;
-
-					 xxx.rt.run("addARenderableComponent", new lib.Node({
-					 X : 100,
-					 Y : 100,
-					 renderer:xxx.rr
-					 }), xxx.rt.nodes, xxx.rr.theShapes);
-					 console.log("xxx unsaveruns ", xxx.rt.unsavedRuns);
-					 this.Renderer.refresh();*/
-					/*
-					 xxx.rt.save();
-					 xxx.rt.run("addARenderableComponent", new lib.Node({
-					 X : 200,
-					 Y : 200
-					 }), xxx.rt.nodes, xxx.rr.theShapes);
-					 xxx.rt.save();
-					 xxx.rt.run("addARenderableComponent", new lib.Node({
-					 X : 200,
-					 Y : 200
-					 }), xxx.rt.nodes, xxx.rr.theShapes);
-					 xxx.rt.save();
-					 //xxx.run("add", (new Batch()));
-					 //xxx.save();
-
-					 console.log("xxx ", xxx);*/
-
 				},
 				initHandlers : function() {
 
@@ -177,38 +146,21 @@
 					//this.init Menu Handlers;
 					//run button
 					this.bottomBar.getComponent(0).getComponent(3).setHandler(function() {
-						var tcl = this.Domain.runStaticConstant();
-						$D.ajaxPost({
-							url : "/cgi-bin/lge/sketchit-server/test/sketchit.ops",
-							success : function(result){
-								console.log("this",this)
-								//console.log("response", text);
-								//{console.log("Domain",Domain)
-								this.Domain.loadResultData(result.responseText);
-								this.Domain.set("deformationAvailable", true);
-								this.deformationAvailable = true;
-								this.autoSetDeformationScale(this.settings.maxDeformationOnScreen);
-								this.refresh();
-							},
-							scope:this,
-							data:tcl
-						});
-						//$D.ajaxPost({
-
-							//url : '/cgi-bin/lge/sketchit-server/test/sketchit.ops',
-							//params : tcl,
-							////method : 'POST',
-							//scope : this,
-							////success : function(result) {
-								//console.log(result)
-
-							//	this.Domain.run("loadResultData", result.responseText);
-							////	this.Domain.runsave("set", this.Domain, "deformationAvailable", true);
-							//	//this.deformationAvailable = true;
-							//	this.autoSetDeformationScale(this.settings.maxDeformationOnScreen);
-							//	this.refresh();
-						//	}
-						//});
+						this.reanalyze();
+						// var tcl = this.Domain.runStaticConstant();
+						// $D.ajaxPost({
+							// url : "/cgi-bin/lge/sketchit-server/test/sketchit.ops",
+							// success : function(result) {
+								// console.log("this", this)
+								// this.Domain.loadResultData(result.responseText);
+								// this.Domain.set("deformationAvailable", true);
+								// this.deformationAvailable = true;
+								// this.autoSetDeformationScale(this.settings.maxDeformationOnScreen);
+								// this.refresh();
+							// },
+							// scope : this,
+							// data : tcl
+						// });
 
 					}, this);
 					//clear button
@@ -231,10 +183,7 @@
 					});
 
 				},
-				/*
-				 setOptions : function(options) {
-				 Ext.apply(this.options, options);
-				 },*/
+				
 				canvasUpLeftX : undefined,
 				canvasUpLeftY : undefined,
 				canvasHeight : undefined,
@@ -242,64 +191,7 @@
 
 				mouseX : undefined,
 				mouseY : undefined,
-				//
-				// settings : {
-				// mode : 'draw',
-				//
-				// modelScale : 2.0,
-				// loadScale : 1.0,
-				// viewPortScale : 1.0,
-				// viewPortShiftX : 0.0,
-				// viewPortShiftY : 0.0,
-				//
-				// showDeformation : true,
-				// deformationScale : 2000,
-				// maxDeformationOnScreen : 40,
-				// deformationResolution : 20,
-				//
-				// snapToNode : true,
-				// snapToNodeThreshold : 15,
-				//
-				// snapToLine : true,
-				// snapToLineThreshold : 5,
-				//
-				// snapToGrid : true,
-				// grid : 20,
-				// gridLineWidth : 1,
-				// gridLineStyle : "rgba(0,0,0,0.5)",
-				//
-				// SPCSnapToDirection : true,
-				// SPCSnapToDirectionThreshold : 0.2,
-				//
-				// SPCSnapToNode : true,
-				// SPCSnapToNodeThreshold : 15,
-				//
-				// circleSnapToSPCThreshold : 25,
-				//
-				// LoadSnapToNodeThreshold : 15,
-				// LoadSnapToLineThreshold : 5,
-				//
-				// autoMergeNodeOnLine : true,
-				// autoMergeNodeOnLineThreshold : 1,
-				//
-				// showNodeId : false,
-				// showElementId : false,
-				// showMarks : false,
-				// showGrid : true,
-				// showSPC : true,
-				//
-				// canvasBgColor : "rgb(255,255,255)",
-				// inputStrokeStyle : "rgb(0,0,255)",
-				// inputStrokeWidth : 2,
-				//
-				// defaultLineELementType : DirectFEA.ElasticBeamColumn,
-				// defaultGeomTransf : Domain.theGeomTransfs[2],
-				// defaultNodeLoadType : "load",
-				//
-				// UniformElementLoadDirectionThreshold : 0.3,
-				// UniformElementLoadSnapToLineThreshold : 15,
-				//
-				// },
+				
 				getCanvasCoordFromViewPort : function(p) {
 					return {
 						X : (p.X - this.settings.viewPortShiftX) / this.settings.viewPortScale,
@@ -344,17 +236,18 @@
 				applyInputStrokeStyle : function(scale) {
 					this.Renderer.ctx.strokeStyle = this.settings.inputStrokeStyle;
 					this.Renderer.ctx.lineWidth = this.settings.inputStrokeWidth / scale;
-					//console.log("scale",this.settings.inputStokeWidth / scale)
-					//console.log("lineWidth",this.Renderer.ctx.lineWidth)
 				},
 				applyGridStyle : function(scale) {
 					this.Renderer.ctx.strokeStyle = this.settings.gridLineStyle;
 					this.Renderer.ctx.lineWidth = this.settings.gridLineWidth / scale;
 				},
 				autoSetDeformationScale : function(maxDispOnScreen) {
-					//Yar a = this.Domain.theNodes.getAbsMax("dispX"), b = this.Domain.theNodes.getAbsMax("dispY"), m = a > b ? a : b;
-					var a = $D.getAbsMax(this.Domain.theNodes,"dispX"), b = $D.getAbsMax(this.Domain.theNodes,"dispY"), m = a > b ? a : b;
+					var a = $D.getAbsMax(this.Domain.theNodes, "dispX"), b = $D.getAbsMax(this.Domain.theNodes, "dispY"), m = a > b ? a : b;
 					this.settings.deformationScale = maxDispOnScreen / m;
+				},
+				autoDeformationScale : function(maxDispOnScreen) {
+					var a = $D.getAbsMax(this.Domain.theNodes, "dispX"), b = $D.getAbsMax(this.Domain.theNodes, "dispY"), m = a > b ? a : b;
+					return maxDispOnScreen / m;
 				},
 				clearScreen : function() {
 					this.Renderer.save();
@@ -365,16 +258,9 @@
 				},
 				drawObjectStore : function(store, fn) {
 					var i, args = Array.prototype.slice.call(arguments, 2);
-					store.each(function(e){
-						e[fn].apply(e,args);
-					})
-					
-
-					// for(i in store) {
-						// if(store.hasOwnProperty(i) && $D.isDefined(store[i])) {
-							// store[i][FcnName].apply(store[i], args);
-						// }
-					// }
+					store.each(function(e) {
+						e[fn].apply(e, args);
+					});
 				},
 				drawAll : function() {
 					var R, vps, dfs, dfr;
@@ -398,26 +284,8 @@
 					this.drawObjectStore(this.Domain.theSPCs, "display", this.Renderer, this.settings.viewPortScale);
 					this.drawObjectStore(this.Domain.thePatterns[1].Loads, "display", this.Renderer, this.settings.viewPortScale);
 					this.drawObjectStore(this.Domain.theNodes, "display", this.Renderer, this.settings.viewPortScale);
-					
-					// this.Domain.theElements.each(function(e) {
-						// window.ee = e;
-						// console.log("e", e)
-						// console.log("R", R)
-						// console.log("v", vps)
-						// console.log("is display defined", $D.isDefined(e.display))
-						// e["dispaly"](R, vps);
-					// });
-// 
-					// this.Domain.theNodes.each(function(e) {
-						// e.dispaly(R, vps);
-					// });
+
 					if(this.Domain.deformationAvailable && this.settings.showDeformation) {
-						// this.Domain.theNodes.each(function(e) {
-							// e.displayDeformation(R, vps, dfs);
-						// });
-						// this.Domain.theElements.each(function(e) {
-							// e.displayDeformation(R, vps, dfs, dfr);
-						// });
 						this.drawObjectStore(this.Domain.theNodes, "displayDeformation", this.Renderer, this.settings.viewPortScale, this.settings.deformationScale);
 						this.drawObjectStore(this.Domain.theElements, "displayDeformation", this.Renderer, this.settings.viewPortScale, this.settings.deformationScale, this.settings.deformationResolution);
 					}
@@ -464,19 +332,12 @@
 					this.Renderer.drawLine(this.inputStrokes[l - 2], this.inputStrokes[l - 1]);
 				},
 				onTouchEnd : function(e, el, obj) {
-					/*
-					 var p = this.canvasPoint2ModelPoint(this.pagePoint2CanvasPoint({
-					 X : e.changedTouches[0].pageX,
-					 Y : e.changedTouches[0].pageY
-					 }))*/
-
 					if(e.touches.length === 0 || e.touches.length === 1) {
 						var result = this.shapeRecognizer.Recognize(this.inputStrokes, false);
 						this.act(result, this.settings)
 						this.refresh();
 					}
 					this.inputStrokes = [];
-
 				},
 				onPinchStart : function(e, el, obj) {
 					var first = this.getCanvasCoordFromPage({
@@ -490,12 +351,6 @@
 						X : 0.5 * (first.X + second.X),
 						Y : 0.5 * (first.Y + second.Y)
 					};
-					/*
-					this.pinchScale = {
-					sx : 1.0,
-					sy : 1.0
-					};*/
-					//this.pinchScale=1.0;
 				},
 				onPinch : function(e, el, obj) {
 					if(!Ext.isDefined(e.touches[0]) || !Ext.isDefined(e.touches[1])) {
@@ -513,46 +368,19 @@
 						X : 0.5 * (first.X + second.X),
 						Y : 0.5 * (first.Y + second.Y)
 					};
-					/*
-					 this.pinchScale = {
-					 sx : e.scale,
-					 sy : e.scale
-					 };*/
-
 					m11 = e.scale;
-					//* this.options.scale.sx;
 					m12 = 0;
 					m21 = 0;
 					m22 = e.scale;
-					//* this.options.scale.sy;
 					cx = this.pinchTranslate1.X - this.pinchTranslate1.X * e.scale;
-					//* this.options.scale.sx;
 					cy = this.pinchTranslate1.Y - this.pinchTranslate1.Y * e.scale;
-					//* this.options.scale.sy;
 					dx = (this.pinchTranslate1.X - this.pinchTranslate0.X) * e.scale;
-					//* this.options.scale.sx;
 					dy = (this.pinchTranslate1.Y - this.pinchTranslate0.Y) * e.scale;
-					//* this.options.scale.sy;
 					this.Renderer.save();
-
-					//this.Renderer.ctx.setTransform(m11, m12, m21, m22, cx + dx, cy + dy);
 					this.Renderer.ctx.transform(m11, m12, m21, m22, cx + dx, cy + dy);
-					/*
-
-					 this.pinchScale = {
-					 sx : m11,
-					 sy : m22
-					 };*/
 					this.pinchScale = e.scale;
 					this.pinchShiftX = cx + dx;
 					this.pinchShiftY = cy + dy;
-					/*
-					this.pinchShift = {
-					dx : cx + dx,
-					dy : cy + dy
-					}*/
-					//this.rescaleModelOptions();
-
 					this.clearScreen();
 					this.drawAll();
 					this.Renderer.restore();
@@ -566,27 +394,91 @@
 					this.refresh();
 				},
 				clearAll : function() {
-					//alert("clear")
-					//this.Domain.run("clearAll");
 					this.Domain.runsave.call(this.Domain, "clearAll");
 					this.refresh();
 				},
 				undo : function() {
 					this.Domain.undo();
-					this.refresh();
 					this.bottomBar.getComponent(6).setDisabled(false);
 					if(this.Domain._head === -1) {
 						this.bottomBar.getComponent(5).setDisabled(true);
+					}
+					if(this.settings.analysisMode === "auto") {
+						this.reanalyze();
+					} else {
+						this.refresh();
 					}
 
 				},
 				redo : function() {
 					this.Domain.redo();
-					this.refresh();
 					this.bottomBar.getComponent(5).setDisabled(false);
 					if(this.Domain._head === this.Domain._timeline.length - 1) {
 						this.bottomBar.getComponent(6).setDisabled(true);
 					}
+					if(this.settings.analysisMode === "auto") {
+						this.reanalyze();
+					} else {
+						this.refresh();
+					}
+				},
+				reanalyze : function() {
+					if(this.Domain.isReadyToRun() /*&& this.Domain.changed*/) {
+						$D.ajaxPost({
+							url : "/cgi-bin/lge/sketchit-server/test/sketchit.ops",
+							success : function(result) {
+								// console.log("this", this)
+								this.Domain.loadResultData(result.responseText);
+								// this.Domain.set("deformationAvailable", true);
+								// this.Domain.commit();
+								this.Domain.deformationAvailable = true;
+								if(this.settings.autoDeformationScale) {
+									this.settings.deformationScale = this.autoDeformationScale(this.settings.maxDeformationOnScreen);
+									this.settings.autoDeformationScale = false;
+								}
+
+								this.refresh();
+							},
+							scope : this,
+							data : this.Domain.runStaticConstant()
+						});
+					} else {
+						this.Domain.deformationAvailable = false;
+						// this.Domain.resetResultData();
+						this.refresh();
+
+					}
+
+				},
+				act : function(recognizeResult, settings) {
+					var obj, args, undo;
+					obj = this.vocabulary[settings.mode][recognizeResult.name];
+					console.log("obj: ", obj, " recognize result ", recognizeResult);
+					if(Ext.isFunction(obj)) {
+						obj = obj.call(this);
+					}
+					
+					if(Ext.isDefined(obj) && Ext.isObject(obj)) {
+						args = obj.argsGen.call(this, recognizeResult.data, settings);
+						undo = obj.undo;
+						this.Domain[obj.command](args);
+						if(undo) {
+							this.Domain.commit();
+							this.bottomBar.getComponent(5).setDisabled(false);
+							this.bottomBar.getComponent(6).setDisabled(true);
+						} else {
+							this.Domain.discard();
+						}
+						// alert("is ready to run? "+this.Domain.isReadyToRun());
+						if(this.settings.analysisMode === "auto") {
+							this.reanalyze();
+						} else {
+							this.refresh();
+						}
+						return true;
+					}
+					console.log("do nothing")
+					return false;
 				},
 				vocabulary : {
 					"draw" : {
@@ -697,29 +589,6 @@
 
 				},
 
-				act : function(recognizeResult, settings) {
-					var obj, args, undo;
-					obj = this.vocabulary[settings.mode][recognizeResult.name];
-					console.log("obj: ", obj, " recognize result ", recognizeResult);
-					if(Ext.isFunction(obj)) {
-						obj = obj.call(this);
-					}
-					if(Ext.isDefined(obj) && Ext.isObject(obj)) {
-						args = obj.argsGen.call(this, recognizeResult.data, settings);
-						undo = obj.undo;
-						this.Domain[obj.command](args);
-						if(undo) {
-							this.Domain.commit();
-							this.bottomBar.getComponent(5).setDisabled(false);
-							this.bottomBar.getComponent(6).setDisabled(true);
-						} else {
-							this.Domain.discard();
-						}
-						return true;
-					}
-
-					return false;
-				},
 			})
 			window.Ctrl = sketchit.controllers.main;
 

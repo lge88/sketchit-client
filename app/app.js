@@ -39,6 +39,8 @@
 					this.settings = {};
 					Ext.apply(this.settings, {
 						mode : 'draw',
+						moveActivated : false,
+						fps:10,
 						analysisMode : "auto", //auto or manual
 
 						modelScale : 2.0,
@@ -95,6 +97,8 @@
 						UniformElementLoadDirectionThreshold : 0.3,
 						UniformElementLoadSnapToLineThreshold : 15,
 
+						circleSelectThreshold : 50
+
 					})
 
 					//this.settings.defaultGeomTransf = Domain.theGeomTransfs[2];
@@ -149,17 +153,17 @@
 						this.reanalyze();
 						// var tcl = this.Domain.runStaticConstant();
 						// $D.ajaxPost({
-							// url : "/cgi-bin/lge/sketchit-server/test/sketchit.ops",
-							// success : function(result) {
-								// console.log("this", this)
-								// this.Domain.loadResultData(result.responseText);
-								// this.Domain.set("deformationAvailable", true);
-								// this.deformationAvailable = true;
-								// this.autoSetDeformationScale(this.settings.maxDeformationOnScreen);
-								// this.refresh();
-							// },
-							// scope : this,
-							// data : tcl
+						// url : "/cgi-bin/lge/sketchit-server/test/sketchit.ops",
+						// success : function(result) {
+						// console.log("this", this)
+						// this.Domain.loadResultData(result.responseText);
+						// this.Domain.set("deformationAvailable", true);
+						// this.deformationAvailable = true;
+						// this.autoSetDeformationScale(this.settings.maxDeformationOnScreen);
+						// this.refresh();
+						// },
+						// scope : this,
+						// data : tcl
 						// });
 
 					}, this);
@@ -183,7 +187,6 @@
 					});
 
 				},
-				
 				canvasUpLeftX : undefined,
 				canvasUpLeftY : undefined,
 				canvasHeight : undefined,
@@ -191,7 +194,7 @@
 
 				mouseX : undefined,
 				mouseY : undefined,
-				
+
 				getCanvasCoordFromViewPort : function(p) {
 					return {
 						X : (p.X - this.settings.viewPortShiftX) / this.settings.viewPortScale,
@@ -286,8 +289,8 @@
 					this.drawObjectStore(this.Domain.theNodes, "display", this.Renderer, this.settings.viewPortScale);
 
 					if(this.Domain.deformationAvailable && this.settings.showDeformation) {
-						this.drawObjectStore(this.Domain.theNodes, "displayDeformation", this.Renderer, this.settings.viewPortScale, this.settings.deformationScale);
 						this.drawObjectStore(this.Domain.theElements, "displayDeformation", this.Renderer, this.settings.viewPortScale, this.settings.deformationScale, this.settings.deformationResolution);
+						this.drawObjectStore(this.Domain.theNodes, "displayDeformation", this.Renderer, this.settings.viewPortScale, this.settings.deformationScale);
 					}
 				},
 				refresh : function() {
@@ -318,26 +321,70 @@
 						X : e.touches[0].pageX,
 						Y : e.touches[0].pageY
 					}));
-					//this.mouseX=e.touches[0].pageX;
-					//this.mouseY=e.touches[0].pageY;
+					this.mouseX = parseInt(e.touches[0].pageX);
+					this.mouseY = parseInt(e.touches[0].pageY);
+					if(this.settings.mode === "move") {
+						this.settings.moveActivated = true;
+						var loop = function(scope) {
+							// console.log("scope",scope)
+							setTimeout(function(scope) {
+
+								// logic here
+								if(scope.settings.analysisMode === "auto") {
+									scope.reanalyze();
+								} else {
+									scope.refresh();
+								}
+
+
+								// recurse
+								if(scope.settings.moveActivated === true) {
+									loop(scope);
+								}
+
+							}, 1000/scope.settings.fps,scope)
+						}
+						loop(this);
+						
+					}
 				},
 				onTouchMove : function(e, el, obj) {
+					var nowX, nowY, i, loop;
+					nowX = parseInt(e.touches[0].pageX);
+					nowY = parseInt(e.touches[0].pageY);
+					if(this.settings.mode === "move" && this.settings.moveActivated === true) {
+						for(i in this.Domain.theNodes) {
+							if(this.Domain.theNodes.hasOwnProperty(i)) {
+								if(this.Domain.theNodes[i].isSelected) {
+									this.Domain.theNodes[i].move(nowX - this.mouseX, -nowY + this.mouseY);
+								}
+							}
+						}
+						
+					} else {
+						this.inputStrokes.push(this.getCanvasCoordFromPage({
+							X : e.touches[0].pageX,
+							Y : e.touches[0].pageY
+						}));
+						var l = this.inputStrokes.length;
+						this.applyInputStrokeStyle(this.settings.viewPortScale);
+						this.Renderer.drawLine(this.inputStrokes[l - 2], this.inputStrokes[l - 1]);
+					}
+					this.mouseX = parseInt(e.touches[0].pageX);
+					this.mouseY = parseInt(e.touches[0].pageY);
 
-					this.inputStrokes.push(this.getCanvasCoordFromPage({
-						X : e.touches[0].pageX,
-						Y : e.touches[0].pageY
-					}));
-					var l = this.inputStrokes.length;
-					this.applyInputStrokeStyle(this.settings.viewPortScale);
-					this.Renderer.drawLine(this.inputStrokes[l - 2], this.inputStrokes[l - 1]);
 				},
 				onTouchEnd : function(e, el, obj) {
+					if(this.settings.mode === "move") {
+						this.settings.moveActivated = false;
+					}
 					if(e.touches.length === 0 || e.touches.length === 1) {
 						var result = this.shapeRecognizer.Recognize(this.inputStrokes, false);
 						this.act(result, this.settings)
 						this.refresh();
 					}
 					this.inputStrokes = [];
+
 				},
 				onPinchStart : function(e, el, obj) {
 					var first = this.getCanvasCoordFromPage({
@@ -451,32 +498,52 @@
 
 				},
 				act : function(recognizeResult, settings) {
-					var obj, args, undo;
-					obj = this.vocabulary[settings.mode][recognizeResult.name];
-					console.log("obj: ", obj, " recognize result ", recognizeResult);
-					if(Ext.isFunction(obj)) {
-						obj = obj.call(this);
-					}
-					
-					if(Ext.isDefined(obj) && Ext.isObject(obj)) {
-						args = obj.argsGen.call(this, recognizeResult.data, settings);
-						undo = obj.undo;
-						this.Domain[obj.command](args);
-						if(undo) {
-							this.Domain.commit();
-							this.bottomBar.getComponent(5).setDisabled(false);
-							this.bottomBar.getComponent(6).setDisabled(true);
-						} else {
-							this.Domain.discard();
+					if(settings.mode === "draw" || settings.mode === "load") {
+						var obj, args, undo;
+						obj = this.vocabulary[settings.mode][recognizeResult.name];
+						console.log("obj: ", obj, " recognize result ", recognizeResult);
+						if(Ext.isFunction(obj)) {
+							obj = obj.call(this);
 						}
-						// alert("is ready to run? "+this.Domain.isReadyToRun());
-						if(this.settings.analysisMode === "auto") {
-							this.reanalyze();
+
+						if(Ext.isDefined(obj) && Ext.isObject(obj)) {
+							args = obj.argsGen.call(this, recognizeResult.data, settings);
+							undo = obj.undo;
+							this.Domain[obj.command](args);
+							if(undo) {
+								this.Domain.commit();
+								this.bottomBar.getComponent(5).setDisabled(false);
+								this.bottomBar.getComponent(6).setDisabled(true);
+							} else {
+								this.Domain.discard();
+							}
+							// alert("is ready to run? "+this.Domain.isReadyToRun());
+							if(this.settings.analysisMode === "auto") {
+								this.reanalyze();
+							} else {
+								this.refresh();
+							}
+							return true;
 						} else {
-							this.refresh();
+							console.log("do nothing")
 						}
+					} else if(settings.mode === "select") {
+						if($D.distance(recognizeResult.data.from, recognizeResult.data.to) < settings.circleSelectThreshold) {
+							this.Domain["circleSelect"]({
+								"poly" : recognizeResult.data.ResamplePoints
+							});
+						} else {
+
+						}
+						this.Domain.commit();
+						this.bottomBar.getComponent(5).setDisabled(false);
+						this.bottomBar.getComponent(6).setDisabled(true);
 						return true;
+
+					} else if(settings.mode === "move") {
+
 					}
+
 					console.log("do nothing")
 					return false;
 				},
@@ -547,7 +614,22 @@
 						},
 					},
 					"select" : {
-
+						//"all"
+						"circle" : {
+							command : "circleSelect",
+							argsGen : function(data, settings) {
+								var result = {};
+								result.poly = data.ResamplePoints;
+								return result;
+							},
+							undo : true
+						},
+						"rectangle" : function() {
+							return this.vocabulary["select"]["circle"];
+						},
+						"triangle" : function() {
+							return this.vocabulary["select"]["circle"];
+						},
 					},
 					"load" : {
 						"line" : {

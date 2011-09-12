@@ -123,6 +123,12 @@ sketchit.views.Bottombar = Ext.extend(Ext.Toolbar, {
 					style : {
 						"font-size" : "80%"
 					}
+				}, {
+					text : 'move',
+					iconCls : 'move',
+					style : {
+						"font-size" : "80%"
+					}
 				}]
 			}]
 		});

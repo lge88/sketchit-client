@@ -101,34 +101,37 @@ sketchit.views.Bottombar = Ext.extend(Ext.Toolbar, {
 				defaults : {
 					iconMask : true,
 					iconAlign : 'top',
-					width:45
+					width:45,
+					style : {
+						"font-size" : "80%"
+					}
 					//ui : "plain"
 				},
 				items : [{
 					text : 'draw',
 					iconCls : 'draw',
 					pressed : true,
-					style : {
-						"font-size" : "80%"
-					}
+					// style : {
+						// "font-size" : "80%"
+					// }
 				}, {
 					text : 'select',
 					iconCls : 'select',
-					style : {
-						"font-size" : "80%"
-					}
+					// style : {
+						// "font-size" : "80%"
+					// }
 				}, {
 					text : 'load',
 					iconCls : 'load',
-					style : {
-						"font-size" : "80%"
-					}
+					// style : {
+						// "font-size" : "80%"
+					// }
 				}, {
 					text : 'move',
 					iconCls : 'move',
-					style : {
-						"font-size" : "80%"
-					}
+					// style : {
+						// "font-size" : "80%"
+					// }
 				}]
 			}]
 		});

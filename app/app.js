@@ -40,20 +40,28 @@
 					Ext.apply(this.settings, {
 						mode : 'draw',
 						moveActivated : false,
-						fps:10,
-						analysisMode : "auto", //auto or manual
+						fps : 10,
+						// analysisMode : "auto", //auto or manual
+						autoAnalysis : true,
 
 						modelScale : 2.0,
 						loadScale : 1.0,
+
 						viewPortScale : 1.0,
 						viewPortShiftX : 0.0,
 						viewPortShiftY : 0.0,
 
 						showDeformation : true,
+						showMoment : true,
+
 						deformationScale : 2000,
+						momentScale : 0.01,
 						autoDeformationScale : true,
 						maxDeformationOnScreen : 40,
 						deformationResolution : 20,
+						autoMomentScale : true,
+						maxMomentOnScreen : 80,
+						momentResolution : 20,
 
 						snapToNode : true,
 						snapToNodeThreshold : 15,
@@ -97,7 +105,8 @@
 						UniformElementLoadDirectionThreshold : 0.3,
 						UniformElementLoadSnapToLineThreshold : 15,
 
-						circleSelectThreshold : 50
+						circleSelectThreshold : 50,
+						clickSelectThreshold : 10
 
 					})
 
@@ -166,6 +175,36 @@
 						// data : tcl
 						// });
 
+					}, this);
+					//grid button
+					this.topBar.getComponent(0).getComponent(2).setHandler(function() {
+						this.settings.showGrid = !this.settings.showGrid;
+						this.refresh();
+					}, this);
+					//deformation button
+					this.topBar.getComponent(0).getComponent(4).setHandler(function() {
+						this.settings.showDeformation = !this.settings.showDeformation;
+						this.reanalyze(function() {
+							this.refresh();
+						});
+					}, this);
+					//moment button
+					this.topBar.getComponent(0).getComponent(5).setHandler(function() {
+						this.settings.showMoment = !this.settings.showMoment;
+						// this.refresh();
+						this.reanalyze(function() {
+							this.refresh();
+						})
+					}, this);
+					//real time button
+					this.topBar.getComponent(0).getComponent(3).setHandler(function() {
+						this.settings.autoAnalysis = !this.settings.autoAnalysis;
+						if(this.settings.autoAnalysis === true) {
+							this.reanalyze(function() {
+								this.refresh();
+							})
+						}
+						//this.refresh();
 					}, this);
 					//clear button
 					this.bottomBar.getComponent(2).setHandler(this.clearAll, this);
@@ -244,13 +283,14 @@
 					this.Renderer.ctx.strokeStyle = this.settings.gridLineStyle;
 					this.Renderer.ctx.lineWidth = this.settings.gridLineWidth / scale;
 				},
-				autoSetDeformationScale : function(maxDispOnScreen) {
-					var a = $D.getAbsMax(this.Domain.theNodes, "dispX"), b = $D.getAbsMax(this.Domain.theNodes, "dispY"), m = a > b ? a : b;
-					this.settings.deformationScale = maxDispOnScreen / m;
-				},
-				autoDeformationScale : function(maxDispOnScreen) {
+				getAutoDeformationScale : function(maxDispOnScreen) {
 					var a = $D.getAbsMax(this.Domain.theNodes, "dispX"), b = $D.getAbsMax(this.Domain.theNodes, "dispY"), m = a > b ? a : b;
 					return maxDispOnScreen / m;
+				},
+				getAutoMomentScale : function(maxDispOnScreen) {
+					var a = $D.getAbsMax(this.Domain.theElements, "maxMoment");
+					console.log("maxM", a)
+					return maxDispOnScreen / a;
 				},
 				clearScreen : function() {
 					this.Renderer.save();
@@ -292,6 +332,9 @@
 						this.drawObjectStore(this.Domain.theElements, "displayDeformation", this.Renderer, this.settings.viewPortScale, this.settings.deformationScale, this.settings.deformationResolution);
 						this.drawObjectStore(this.Domain.theNodes, "displayDeformation", this.Renderer, this.settings.viewPortScale, this.settings.deformationScale);
 					}
+					if(this.Domain.deformationAvailable && this.settings.showMoment) {
+						this.drawObjectStore(this.Domain.theElements, "displayMoment", this.Renderer, this.settings.viewPortScale, this.settings.momentScale, this.settings.momentResolution);
+					}
 				},
 				refresh : function() {
 					this.clearScreen();
@@ -316,62 +359,73 @@
 					this.refresh();
 				},
 				onTouchStart : function(e, el, obj) {
-					this.inputStrokes = [];
-					this.inputStrokes.push(this.getCanvasCoordFromPage({
+					var P = this.getCanvasCoordFromPage({
 						X : e.touches[0].pageX,
 						Y : e.touches[0].pageY
-					}));
-					this.mouseX = parseInt(e.touches[0].pageX);
-					this.mouseY = parseInt(e.touches[0].pageY);
+					});
+
+					// this.inputStrokes.push(this.getCanvasCoordFromPage({
+					// X : e.touches[0].pageX,
+					// Y : e.touches[0].pageY
+					// }));
+					this.mouseX = P.X;
+					this.mouseY = P.Y;
 					if(this.settings.mode === "move") {
+						this.moveStartX = P.X;
+						this.moveStartY = P.Y;
 						this.settings.moveActivated = true;
 						var loop = function(scope) {
 							// console.log("scope",scope)
 							setTimeout(function(scope) {
 
 								// logic here
-								if(scope.settings.analysisMode === "auto") {
-									scope.reanalyze();
+								if(scope.settings.autoAnalysis) {
+									// if(scope.settings.analysisMode === "auto") {
+									scope.reanalyze(function(){
+										scope.refresh();
+									});
 								} else {
+									// console.log("refresh")
 									scope.refresh();
 								}
-
 
 								// recurse
 								if(scope.settings.moveActivated === true) {
 									loop(scope);
 								}
 
-							}, 1000/scope.settings.fps,scope)
+							}, 1000 / scope.settings.fps, scope)
 						}
 						loop(this);
-						
+
+					} else {
+						this.inputStrokes = [];
+						this.inputStrokes.push(P);
+
 					}
 				},
 				onTouchMove : function(e, el, obj) {
-					var nowX, nowY, i, loop;
-					nowX = parseInt(e.touches[0].pageX);
-					nowY = parseInt(e.touches[0].pageY);
+					var P = this.getCanvasCoordFromPage({
+						X : e.touches[0].pageX,
+						Y : e.touches[0].pageY
+					});
+					// var nowX, nowY, i, loop;
+					// nowX = parseInt(e.touches[0].pageX);
+					// nowY = parseInt(e.touches[0].pageY);
 					if(this.settings.mode === "move" && this.settings.moveActivated === true) {
-						for(i in this.Domain.theNodes) {
-							if(this.Domain.theNodes.hasOwnProperty(i)) {
-								if(this.Domain.theNodes[i].isSelected) {
-									this.Domain.theNodes[i].move(nowX - this.mouseX, -nowY + this.mouseY);
-								}
-							}
-						}
-						
+						this.Domain["moveSelectedNodes"]({
+							"dx" : P.X - this.mouseX,
+							"dy" : P.Y - this.mouseY
+						});
 					} else {
-						this.inputStrokes.push(this.getCanvasCoordFromPage({
-							X : e.touches[0].pageX,
-							Y : e.touches[0].pageY
-						}));
-						var l = this.inputStrokes.length;
+						var l;
+						this.inputStrokes.push(P);
+						l = this.inputStrokes.length;
 						this.applyInputStrokeStyle(this.settings.viewPortScale);
 						this.Renderer.drawLine(this.inputStrokes[l - 2], this.inputStrokes[l - 1]);
 					}
-					this.mouseX = parseInt(e.touches[0].pageX);
-					this.mouseY = parseInt(e.touches[0].pageY);
+					this.mouseX = P.X;
+					this.mouseY = P.Y;
 
 				},
 				onTouchEnd : function(e, el, obj) {
@@ -379,9 +433,10 @@
 						this.settings.moveActivated = false;
 					}
 					if(e.touches.length === 0 || e.touches.length === 1) {
-						var result = this.shapeRecognizer.Recognize(this.inputStrokes, false);
-						this.act(result, this.settings)
-						this.refresh();
+						//var result = this.shapeRecognizer.Recognize(this.inputStrokes, false);
+						// this.act(result, this.settings)
+						this.oneStrokeHandler();
+						//this.refresh();
 					}
 					this.inputStrokes = [];
 
@@ -441,7 +496,8 @@
 					this.refresh();
 				},
 				clearAll : function() {
-					this.Domain.runsave.call(this.Domain, "clearAll");
+					this.Domain.wipeAll();
+					this.Domain.commit();
 					this.refresh();
 				},
 				undo : function() {
@@ -450,8 +506,11 @@
 					if(this.Domain._head === -1) {
 						this.bottomBar.getComponent(5).setDisabled(true);
 					}
-					if(this.settings.analysisMode === "auto") {
-						this.reanalyze();
+
+					if(this.settings.autoAnalysis) {
+						this.reanalyze(function() {
+							this.refresh();
+						});
 					} else {
 						this.refresh();
 					}
@@ -463,96 +522,202 @@
 					if(this.Domain._head === this.Domain._timeline.length - 1) {
 						this.bottomBar.getComponent(6).setDisabled(true);
 					}
-					if(this.settings.analysisMode === "auto") {
-						this.reanalyze();
-					} else {
-						this.refresh();
-					}
-				},
-				reanalyze : function() {
-					if(this.Domain.isReadyToRun() /*&& this.Domain.changed*/) {
-						$D.ajaxPost({
-							url : "/cgi-bin/lge/sketchit-server/test/sketchit.ops",
-							success : function(result) {
-								// console.log("this", this)
-								this.Domain.loadResultData(result.responseText);
-								// this.Domain.set("deformationAvailable", true);
-								// this.Domain.commit();
-								this.Domain.deformationAvailable = true;
-								if(this.settings.autoDeformationScale) {
-									this.settings.deformationScale = this.autoDeformationScale(this.settings.maxDeformationOnScreen);
-									this.settings.autoDeformationScale = false;
-								}
 
-								this.refresh();
-							},
-							scope : this,
-							data : this.Domain.runStaticConstant()
+					if(this.settings.autoAnalysis) {
+						this.reanalyze(function() {
+							this.refresh();
 						});
 					} else {
-						this.Domain.deformationAvailable = false;
-						// this.Domain.resetResultData();
 						this.refresh();
-
 					}
-
 				},
-				act : function(recognizeResult, settings) {
-					if(settings.mode === "draw" || settings.mode === "load") {
-						var obj, args, undo;
-						obj = this.vocabulary[settings.mode][recognizeResult.name];
-						console.log("obj: ", obj, " recognize result ", recognizeResult);
-						if(Ext.isFunction(obj)) {
-							obj = obj.call(this);
-						}
+				reanalyze : function(fn) {
+					var args = Array.prototype.slice.call(arguments, 1), flag = false;
+					if(this.Domain.isReadyToRun() /*&& this.Domain.changed*/) {
+						if(this.settings.showMoment || this.settings.showDeformation) {
+							$D.ajaxPost({
+								url : "/cgi-bin/lge/sketchit-server/test/sketchit.ops",
+								scope : this,
+								data : this.Domain.runStaticConstant(this.settings.showDeformation, this.settings.showMoment),
+								success : function(result) {
+									// console.log("this", this)
+									this.Domain.loadResultData(result.responseText);
+									this.Domain.set("deformationAvailable", true);
+									// this.Domain.commit();
+									// this.Domain.deformationAvailable = true;
+									if(this.settings.autoDeformationScale) {
+										var ascale = this.getAutoDeformationScale(this.settings.maxDeformationOnScreen)
+										if(!isNaN(ascale)) {
+											this.settings.deformationScale = this.getAutoDeformationScale(this.settings.maxDeformationOnScreen);
+											this.settings.autoDeformationScale = false;
+										}
+									}
 
-						if(Ext.isDefined(obj) && Ext.isObject(obj)) {
-							args = obj.argsGen.call(this, recognizeResult.data, settings);
-							undo = obj.undo;
-							this.Domain[obj.command](args);
-							if(undo) {
-								this.Domain.commit();
-								this.bottomBar.getComponent(5).setDisabled(false);
-								this.bottomBar.getComponent(6).setDisabled(true);
-							} else {
-								this.Domain.discard();
-							}
-							// alert("is ready to run? "+this.Domain.isReadyToRun());
-							if(this.settings.analysisMode === "auto") {
-								this.reanalyze();
-							} else {
-								this.refresh();
-							}
-							return true;
-						} else {
-							console.log("do nothing")
-						}
-					} else if(settings.mode === "select") {
-						if($D.distance(recognizeResult.data.from, recognizeResult.data.to) < settings.circleSelectThreshold) {
-							this.Domain["circleSelect"]({
-								"poly" : recognizeResult.data.ResamplePoints
+									if(this.settings.autoMomentScale) {
+										var mscale = this.getAutoMomentScale(this.settings.maxMomentOnScreen);
+										if(!isNaN(mscale)) {
+											this.settings.momentScale = mscale;
+											this.settings.autoMomentScale = false;
+										}
+									}
+									if($D.isDefined(fn)) {
+										fn.apply(this, args);
+									}
+
+									// this.refresh();
+								},
 							});
-						} else {
-
-						}
-						this.Domain.commit();
-						this.bottomBar.getComponent(5).setDisabled(false);
-						this.bottomBar.getComponent(6).setDisabled(true);
-						return true;
-
-					} else if(settings.mode === "move") {
+							flag = true;
+						}// else {
+						// this.refresh();
+						// }
+					} else {
+						// this.Domain.deformationAvailable = false;
+						this.Domain.set("deformationAvailable", false);
+						// this.Domain.resetResultData();
+						// this.refresh();
 
 					}
-
-					console.log("do nothing")
-					return false;
+					if($D.isDefined(fn) && !flag) {
+						fn.apply(this, args);
+					}
 				},
-				vocabulary : {
+				// act : function(recognizeResult, settings) {
+				// if(settings.mode === "draw" || settings.mode === "load") {
+				// var obj, args, undo;
+				// obj = this.vocabulary[settings.mode][recognizeResult.name];
+				// console.log("obj: ", obj, " recognize result ", recognizeResult);
+				// if(Ext.isFunction(obj)) {
+				// obj = obj.call(this);
+				// }
+				//
+				// if(Ext.isDefined(obj) && Ext.isObject(obj)) {
+				// args = obj.argsGen.call(this, recognizeResult.data, settings);
+				// undo = obj.undo;
+				// this.Domain[obj.command](args);
+				// if(undo) {
+				// this.Domain.commit();
+				// this.bottomBar.getComponent(5).setDisabled(false);
+				// this.bottomBar.getComponent(6).setDisabled(true);
+				// } else {
+				// this.Domain.discard();
+				// }
+				// // alert("is ready to run? "+this.Domain.isReadyToRun());
+				// if(this.settings.autoAnalysis) {
+				// // if(this.settings.analysisMode === "auto") {
+				// this.reanalyze();
+				// } else {
+				// this.refresh();
+				// }
+				// return true;
+				// } else {
+				// console.log("do nothing")
+				// }
+				// } else if(settings.mode === "select") {
+				// if($D.distance(recognizeResult.data.from, recognizeResult.data.to) < settings.circleSelectThreshold) {
+				// this.Domain["circleSelect"]({
+				// "poly" : recognizeResult.data.ResamplePoints
+				// });
+				// } else {
+				//
+				// }
+				// this.Domain.commit();
+				// this.bottomBar.getComponent(5).setDisabled(false);
+				// this.bottomBar.getComponent(6).setDisabled(true);
+				// return true;
+				//
+				// } else if(settings.mode === "move") {
+				//
+				// }
+				//
+				// console.log("do nothing")
+				// return false;
+				// },
+
+				oneStrokeHandler : function() {
+					undo = true, changed = false;
+					switch (this.settings.mode) {
+
+						case "draw":
+						case "load":
+							var recognizeResult = this.shapeRecognizer.Recognize(this.inputStrokes, false),//
+							obj = this.oneStrokeVocabulary[this.settings.mode][recognizeResult.name];
+							if(Ext.isDefined(obj)) {
+								console.log("obj: ", obj, " recognize result ", recognizeResult);
+								if(Ext.isFunction(obj)) {
+									obj = obj.call(this);
+								}
+								if(Ext.isObject(obj)) {
+									undo = obj.undo;
+									changed = this.Domain[obj.command](obj.argsGen.call(this, recognizeResult.data));
+								}
+							}
+							break;
+						case "select":
+							var recognizeResult = this.shapeRecognizer.Recognize(this.inputStrokes, false), //
+							d = $D.distance(recognizeResult.data.from, recognizeResult.data.to), //
+							l = recognizeResult.data.PathLength;
+							if(d > this.settings.circleSelectThreshold) {
+								changed = this.Domain["intersectSelect"]({
+									"curve" : recognizeResult.data.ResamplePoints
+								});
+							} else {
+								if(l < this.settings.clickSelectThreshold) {
+									changed = this.Domain["clickSelect"]({
+										"X" : recognizeResult.data.from.X,
+										"Y" : recognizeResult.data.from.Y
+									});
+								} else {
+									changed = this.Domain["circleSelect"]({
+										"poly" : recognizeResult.data.ResamplePoints
+									});
+								}
+							}
+							undo = true;
+							break;
+						case "move":
+							changed = this.Domain["jumpMoveSelectedNodes"]({
+								"dx" : this.mouseX - this.moveStartX,
+								"dy" : this.mouseY - this.moveStartY,
+							});
+							undo = true;
+
+							break;
+						default:
+							alert("mode not found!")
+							break;
+					}
+
+					if(!changed) {
+						console.log("do nothing");
+						this.refresh();
+						return;
+					}
+
+					// alert("is ready to run? "+this.Domain.isReadyToRun());
+					var inlineProc = function() {
+						if(undo) {
+							this.Domain.commit();
+							this.bottomBar.getComponent(5).setDisabled(false);
+							this.bottomBar.getComponent(6).setDisabled(true);
+						} else {
+							this.Domain.discard();
+						}
+						this.refresh();
+					};
+					if(this.settings.autoAnalysis) {
+						// if(this.settings.analysisMode === "auto") {
+						this.reanalyze(inlineProc);
+					} else {
+						inlineProc.call(this);
+					}
+				},
+				oneStrokeVocabulary : {
 					"draw" : {
 						"line" : {
 							command : "addALineElement",
-							argsGen : function(data, settings) {
-								var result = {};
+							argsGen : function(data) {
+								var result = {}, settings = this.settings;
 								result.x1 = data.from.X;
 								result.y1 = data.from.Y;
 								result.x2 = data.to.X;
@@ -578,8 +743,9 @@
 						},
 						"triangle" : {
 							command : "addASPC",
-							argsGen : function(data, settings) {
-								var result = {};
+							argsGen : function(data) {
+								var result = {}, settings = this.settings;
+								;
 								result.topX = data.from.X;
 								result.topY = data.from.Y;
 								result.angle = data.IndicativeAngle;
@@ -600,8 +766,8 @@
 						},
 						"circle" : {
 							command : "releaseASPC",
-							argsGen : function(data, settings) {
-								var result = {};
+							argsGen : function(data) {
+								var result = {}, settings = this.settings;
 								result.cenX = data.Centroid.X;
 								result.cenY = data.Centroid.Y;
 								result.t = settings.circleSnapToSPCThreshold;
@@ -614,28 +780,27 @@
 						},
 					},
 					"select" : {
-						//"all"
-						"circle" : {
+						"circleSelect" : {
 							command : "circleSelect",
-							argsGen : function(data, settings) {
-								var result = {};
+							argsGen : function(data) {
+								var result = {}, settings = this.settings;
 								result.poly = data.ResamplePoints;
 								return result;
 							},
 							undo : true
 						},
-						"rectangle" : function() {
+						"intersectSelect" : function() {
 							return this.vocabulary["select"]["circle"];
 						},
-						"triangle" : function() {
+						"clickSelect" : function() {
 							return this.vocabulary["select"]["circle"];
 						},
 					},
 					"load" : {
 						"line" : {
 							command : "addALoad",
-							argsGen : function(data, settings) {
-								var result = {};
+							argsGen : function(data) {
+								var result = {}, settings = this.settings;
 								result.x1 = data.from.X;
 								result.y1 = data.from.Y;
 								result.x2 = data.to.X;
@@ -652,8 +817,8 @@
 						},
 						"squareBracket" : {
 							command : "addUniformElementLoad",
-							argsGen : function(data, settings) {
-								var result = {};
+							argsGen : function(data) {
+								var result = {}, settings = this.settings;
 								result.x1 = data.from.X;
 								result.y1 = data.from.Y;
 								result.x2 = data.to.X;
@@ -665,7 +830,7 @@
 								return result;
 							},
 							undo : true
-						},
+						}
 
 					}
 

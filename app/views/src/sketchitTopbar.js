@@ -8,11 +8,15 @@ sketchit.views.Topbar = Ext.extend(Ext.Toolbar, {
 		Ext.apply(this, {
 			dock:"top",
 			layout:"hbox",
-			//ui:"light",
+			ui:"light",
 			defaults: {
 				iconMask:true,
 				ui:"plain",
 				//ui:"light",
+			},
+			scroll : {
+				direction : 'horizontal',
+				useIndicators : false
 			},
 			items: [{
 				xtype:'segmentedbutton',
@@ -20,11 +24,19 @@ sketchit.views.Topbar = Ext.extend(Ext.Toolbar, {
 				items:[{
 					text: 'Size'
 				},{
-					text: 'Number'
+					text: '#Node'
 				},{
-					text: 'Grid'
+					text: 'Grid',
+					pressed:true
 				},{
-					text: 'RealTime'
+					text: 'AutoRun',
+					pressed:true
+				},{
+					text: 'Deformation',
+					pressed:true
+				},{
+					text: 'Moment',
+					pressed:true
 				}
 				]
 			}]

@@ -547,15 +547,15 @@
 									// this.Domain.deformationAvailable = true;
 									if(this.settings.autoDeformationScale) {
 										var ascale = this.getAutoDeformationScale(this.settings.maxDeformationOnScreen)
-										if(!isNaN(ascale)) {
-											this.settings.deformationScale = this.getAutoDeformationScale(this.settings.maxDeformationOnScreen);
+										if(isFinite(ascale)) {
+											this.settings.deformationScale = ascale;
 											this.settings.autoDeformationScale = false;
 										}
 									}
 
 									if(this.settings.autoMomentScale) {
 										var mscale = this.getAutoMomentScale(this.settings.maxMomentOnScreen);
-										if(!isNaN(mscale)) {
+										if(isFinite(mscale)) {
 											this.settings.momentScale = mscale;
 											this.settings.autoMomentScale = false;
 										}

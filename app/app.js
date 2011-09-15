@@ -105,7 +105,7 @@
 						UniformElementLoadDirectionThreshold : 0.3,
 						UniformElementLoadSnapToLineThreshold : 15,
 
-						circleSelectThreshold : 50,
+						circleSelectThreshold : 0.1,
 						clickSelectThreshold : 10
 
 					})
@@ -194,21 +194,26 @@
 					//clear button
 					this.bottomBar.getComponent(2).setHandler(this.clearAll, this);
 					//unselect all button
-					this.bottomBar.getComponent(3).setHandler(function(){
-						if (!this.Domain["unselectAll"]()){
+					this.bottomBar.getComponent(3).setHandler(function() {
+						if(!this.Domain["unselectAll"]()) {
 							console.log("do nothing");
 						}
 						this.Domain.commit();
 						this.refresh();
 					}, this);
-					
 					//delete button
-					this.bottomBar.getComponent(4).setHandler(function(){
-						if (!this.Domain["removeSelectedElement"]()){						
+					this.bottomBar.getComponent(4).setHandler(function() {
+						if(!this.Domain["removeSelectedElement"]()) {
 							console.log("do nothing");
 						}
 						this.Domain.commit();
-						this.refresh();
+						if(this.settings.autoAnalysis) {
+							this.reanalyze(function() {
+								this.refresh();
+							});
+						} else {
+							this.refresh();
+						}
 					}, this);
 					//undo button
 					this.bottomBar.getComponent(5).setHandler(this.undo, this);
@@ -383,7 +388,7 @@
 								// logic here
 								if(scope.settings.autoAnalysis) {
 									// if(scope.settings.analysisMode === "auto") {
-									scope.reanalyze(function(){
+									scope.reanalyze(function() {
 										scope.refresh();
 									});
 								} else {
@@ -635,13 +640,12 @@
 				// return false;
 				// },
 
-				oneStrokeHandler : function() {
-					undo = true, changed = false;
+				oneStrokeHandler : function() { undo = true, changed = false;
 					switch (this.settings.mode) {
 
 						case "draw":
 						case "load":
-							var recognizeResult = this.shapeRecognizer.Recognize(this.inputStrokes, false),//
+							var recognizeResult = this.shapeRecognizer.Recognize(this.inputStrokes, false), //
 							obj = this.oneStrokeVocabulary[this.settings.mode][recognizeResult.name];
 							if(Ext.isDefined(obj)) {
 								console.log("obj: ", obj, " recognize result ", recognizeResult);
@@ -658,7 +662,7 @@
 							var recognizeResult = this.shapeRecognizer.Recognize(this.inputStrokes, false), //
 							d = $D.distance(recognizeResult.data.from, recognizeResult.data.to), //
 							l = recognizeResult.data.PathLength;
-							if(d > this.settings.circleSelectThreshold) {
+							if(d/l > this.settings.circleSelectThreshold) {
 								changed = this.Domain["intersectSelect"]({
 									"curve" : recognizeResult.data.ResamplePoints
 								});

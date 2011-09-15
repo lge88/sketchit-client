@@ -43,6 +43,17 @@
 						fps : 10,
 						// analysisMode : "auto", //auto or manual
 						autoAnalysis : true,
+						// this.Renderer.ctx.font = "bold 12px sans-serif";
+						// this.Renderer.ctx.textBaseline = "bottom";
+						// this.Renderer.ctx.fillStyle="rgb(0,0,0)";
+						// this.Renderer.transform(1,0,0,-1,0,0);
+						// this.Renderer.ctx.fillText(m,10,-10);
+						showMessage : true,
+						messageBoxPositionX : 10,
+						messageBoxPositionY : 10,
+						messageTextFont : "bold 12px sans-serif",
+						messageTextFillStye : "rgb(0,0,0)",
+						messageLastTime : 5,
 
 						modelScale : 2.0,
 						loadScale : 1.0,
@@ -136,9 +147,16 @@
 				initHandlers : function() {
 
 					//init main view event
+					// document.addEventListener("DOMMouseScroll",function(){
+					// alert("mouse wheel")
+					// })
+					// document.addEventListener("mousewheel",function(e){
+					// console.log("e",e)
+					// })
 
 					this.mainView.on({
 						orientationchange : this.onOrientationchange,
+
 						scope : this
 					})
 
@@ -148,7 +166,10 @@
 						touchmove : this.onTouchMove,
 						touchstart : this.onTouchStart,
 						touchend : this.onTouchEnd,
-
+						mousewheel : function(e) {
+							// alert("mouse wheelasfasdfs")
+							console.log("e", e)
+						},
 						//tapcancel: function(){alert("touch cancle")},
 						pinchstart : this.onPinchStart,
 						pinch : this.onPinch,
@@ -240,6 +261,7 @@
 
 				mouseX : undefined,
 				mouseY : undefined,
+				logs : [],
 
 				getCanvasCoordFromViewPort : function(p) {
 					return {
@@ -312,7 +334,19 @@
 						e[fn].apply(e, args);
 					});
 				},
-				drawAll : function() {
+				drawMessage : function() {
+					var C = this.Renderer.ctx, l = this.logs, len = l.length, S = this.settings;
+					if(len > 0) {
+						var m = l[len - 1]
+						C.save();
+						C.font = S.messageTextFont;
+						C.fillStyle = S.messageTextFillStye;
+						C.transform(1, 0, 0, -1, 0, 0);
+						C.fillText(m, S.messageBoxPositionX, -S.messageBoxPositionY);
+						C.restore();
+					}
+				},
+				drawDomain : function() {
 					var R, vps, dfs, dfr;
 					R = this.Renderer;
 					vps = this.settings.viewPortScale;
@@ -346,14 +380,12 @@
 				refresh : function() {
 					this.clearScreen();
 					this.initCanvasTransform();
+					this.drawMessage();
 					this.applyViewPortTransform();
-					this.drawAll();
+					this.drawDomain();
 				},
 				save : function() {
-
-					console.log("toTcl");
-
-					console.log(this.Domain.runStaticConstant(this.settings.modelScale, this.settings.loadScale));
+					alert(this.Domain.runStaticConstant(this.settings.modelScale, this.settings.loadScale));
 
 				},
 				onOrientationchange : function() {
@@ -365,53 +397,45 @@
 					this.resetViewPort();
 					this.refresh();
 				},
+				animate : function(condition, fn, dt) {
+					setTimeout(function(scope) {
+						fn.call(scope);
+						if(condition.call(scope)) {
+							scope.animate(condition, fn, dt)
+						}
+					}, dt, this);
+				},
 				onTouchStart : function(e, el, obj) {
+					// this.logs.push("start!\nnextline");
 					var P = this.getCanvasCoordFromPage({
 						X : e.touches[0].pageX,
 						Y : e.touches[0].pageY
 					});
-
-					// this.inputStrokes.push(this.getCanvasCoordFromPage({
-					// X : e.touches[0].pageX,
-					// Y : e.touches[0].pageY
-					// }));
 					this.mouseX = P.X;
 					this.mouseY = P.Y;
 					if(this.settings.mode === "move") {
 						this.moveStartX = P.X;
 						this.moveStartY = P.Y;
 						this.settings.moveActivated = true;
-						var loop = function(scope) {
-							// console.log("scope",scope)
-							setTimeout(function(scope) {
-
-								// logic here
-								if(scope.settings.autoAnalysis) {
-									// if(scope.settings.analysisMode === "auto") {
-									scope.reanalyze(function() {
-										scope.refresh();
-									});
-								} else {
-									// console.log("refresh")
-									scope.refresh();
-								}
-
-								// recurse
-								if(scope.settings.moveActivated === true) {
-									loop(scope);
-								}
-
-							}, 1000 / scope.settings.fps, scope)
-						}
-						loop(this);
+						this.animate(function() {
+							return this.settings.moveActivated;
+						}, function() {
+							if(this.settings.autoAnalysis) {
+								this.reanalyze(function() {
+									this.refresh();
+								});
+							} else {
+								this.refresh();
+							}
+						}, 1000 / this.settings.fps)
 
 					} else {
 						this.inputStrokes = [];
 						this.inputStrokes.push(P);
-
 					}
 				},
 				onTouchMove : function(e, el, obj) {
+					// console.log("move", e)
 					var P = this.getCanvasCoordFromPage({
 						X : e.touches[0].pageX,
 						Y : e.touches[0].pageY
@@ -439,6 +463,7 @@
 					if(this.settings.mode === "move") {
 						this.settings.moveActivated = false;
 					}
+					console.log("e", e)
 					if(e.touches.length === 0 || e.touches.length === 1) {
 						//var result = this.shapeRecognizer.Recognize(this.inputStrokes, false);
 						// this.act(result, this.settings)
@@ -491,7 +516,7 @@
 					this.pinchShiftX = cx + dx;
 					this.pinchShiftY = cy + dy;
 					this.clearScreen();
-					this.drawAll();
+					this.drawDomain();
 					this.Renderer.restore();
 				},
 				onPinchEnd : function() {
@@ -640,7 +665,8 @@
 				// return false;
 				// },
 
-				oneStrokeHandler : function() { undo = true, changed = false;
+				oneStrokeHandler : function() {
+					var undo = true, changed = false, msg = "", S = this.settings,action;
 					switch (this.settings.mode) {
 
 						case "draw":
@@ -648,56 +674,77 @@
 							var recognizeResult = this.shapeRecognizer.Recognize(this.inputStrokes, false), //
 							obj = this.oneStrokeVocabulary[this.settings.mode][recognizeResult.name];
 							if(Ext.isDefined(obj)) {
+								//this.logs.push("")
 								console.log("obj: ", obj, " recognize result ", recognizeResult);
+								// msg = "mode: " + S.mode + "; shape: " + recognizeResult.name + "; actioin:" + action + " ;undoable:"+undo;
 								if(Ext.isFunction(obj)) {
 									obj = obj.call(this);
 								}
 								if(Ext.isObject(obj)) {
 									undo = obj.undo;
-									changed = this.Domain[obj.command](obj.argsGen.call(this, recognizeResult.data));
+									action = obj.command;
+									changed = this.Domain[action](obj.argsGen.call(this, recognizeResult.data));
+									// msg = "mode: " + S.mode + "; shape: " + recognizeResult.name + "; actioin:" + action + " ;undoable:"+undo;
+									// msg = "mode: " + S.mode + "; shape: " + recognizeResult.name + "; actioin:"//
+									// + obj.command + "; success: " + changed + "; undoable:" + undo;
+								} else {
+									undo = "NA";
+									action = "no found";
 								}
+								msg = "mode: " + S.mode + "; shape: " + recognizeResult.name + "; actioin:" + action + " ;undoable:"+undo;
 							}
 							break;
 						case "select":
 							var recognizeResult = this.shapeRecognizer.Recognize(this.inputStrokes, false), //
 							d = $D.distance(recognizeResult.data.from, recognizeResult.data.to), //
-							l = recognizeResult.data.PathLength;
-							if(d/l > this.settings.circleSelectThreshold) {
+							l = recognizeResult.data.PathLength,action;
+							if(d / l > this.settings.circleSelectThreshold) {
+								action = "intersectSelect";
 								changed = this.Domain["intersectSelect"]({
 									"curve" : recognizeResult.data.ResamplePoints
 								});
 							} else {
 								if(l < this.settings.clickSelectThreshold) {
-									changed = this.Domain["clickSelect"]({
-										"X" : recognizeResult.data.from.X,
-										"Y" : recognizeResult.data.from.Y
-									});
+									// action = "clickSelect";
+									// changed = this.Domain["clickSelect"]({
+										// "X" : recognizeResult.data.from.X,
+										// "Y" : recognizeResult.data.from.Y
+									// });
 								} else {
+									action = "circleSelect";
 									changed = this.Domain["circleSelect"]({
 										"poly" : recognizeResult.data.ResamplePoints
 									});
 								}
 							}
 							undo = true;
+							msg = "mode: " + S.mode + "; shape: " + recognizeResult.name + "; actioin:" + action + " ;undoable:"+undo;
 							break;
 						case "move":
 							changed = this.Domain["jumpMoveSelectedNodes"]({
 								"dx" : this.mouseX - this.moveStartX,
 								"dy" : this.mouseY - this.moveStartY,
 							});
+							action = "moveSelectedComponent";
 							undo = true;
+							msg = "mode: " + S.mode + "; actioin:" + action + " ;undoable:"+undo;
 
 							break;
 						default:
 							alert("mode not found!")
 							break;
 					}
+					
+					
 
 					if(!changed) {
 						console.log("do nothing");
+						msg += "; Domain is not changed";
+						this.logs.push(msg);
 						this.refresh();
 						return;
 					}
+					
 
 					// alert("is ready to run? "+this.Domain.isReadyToRun());
 					var inlineProc = function() {
@@ -708,6 +755,8 @@
 						} else {
 							this.Domain.discard();
 						}
+						msg += "; Domain is changed";
+						this.logs.push(msg);
 						this.refresh();
 					};
 					if(this.settings.autoAnalysis) {

@@ -64,10 +64,10 @@
 						momentResolution : 20,
 
 						snapToNode : true,
-						snapToNodeThreshold : 15,
+						snapToNodeThreshold : 50,
 
 						snapToLine : true,
-						snapToLineThreshold : 5,
+						snapToLineThreshold : 25,
 
 						snapToGrid : true,
 						grid : 20,
@@ -160,21 +160,6 @@
 					//run button
 					this.bottomBar.getComponent(0).getComponent(3).setHandler(function() {
 						this.reanalyze();
-						// var tcl = this.Domain.runStaticConstant();
-						// $D.ajaxPost({
-						// url : "/cgi-bin/lge/sketchit-server/test/sketchit.ops",
-						// success : function(result) {
-						// console.log("this", this)
-						// this.Domain.loadResultData(result.responseText);
-						// this.Domain.set("deformationAvailable", true);
-						// this.deformationAvailable = true;
-						// this.autoSetDeformationScale(this.settings.maxDeformationOnScreen);
-						// this.refresh();
-						// },
-						// scope : this,
-						// data : tcl
-						// });
-
 					}, this);
 					//grid button
 					this.topBar.getComponent(0).getComponent(2).setHandler(function() {
@@ -208,6 +193,23 @@
 					}, this);
 					//clear button
 					this.bottomBar.getComponent(2).setHandler(this.clearAll, this);
+					//unselect all button
+					this.bottomBar.getComponent(3).setHandler(function(){
+						if (!this.Domain["unselectAll"]()){
+							console.log("do nothing");
+						}
+						this.Domain.commit();
+						this.refresh();
+					}, this);
+					
+					//delete button
+					this.bottomBar.getComponent(4).setHandler(function(){
+						if (!this.Domain["removeSelectedElement"]()){						
+							console.log("do nothing");
+						}
+						this.Domain.commit();
+						this.refresh();
+					}, this);
 					//undo button
 					this.bottomBar.getComponent(5).setHandler(this.undo, this);
 					this.bottomBar.getComponent(5).setDisabled(true);
@@ -549,7 +551,6 @@
 										var ascale = this.getAutoDeformationScale(this.settings.maxDeformationOnScreen)
 										if(isFinite(ascale)) {
 											this.settings.deformationScale = ascale;
-											this.settings.autoDeformationScale = false;
 										}
 									}
 
@@ -726,10 +727,10 @@
 								result.geomTransf = settings.defaultGeomTransf;
 
 								if(settings.snapToNode) {
-									result.snapToNodeThreshold = settings.snapToNodeThreshold;
+									result.snapToNodeThreshold = settings.snapToNodeThreshold / settings.viewPortScale;
 								}
 								if(settings.snapToLine) {
-									result.snapToLineThreshold = settings.snapToLineThreshold;
+									result.snapToLineThreshold = settings.snapToLineThreshold / settings.viewPortScale;
 								}
 								if(settings.snapToGrid) {
 									result.grid = settings.grid;

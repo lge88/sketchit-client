@@ -428,18 +428,23 @@
 					if(this.settings.mode === "move") {
 						// this.moveStartX = P.X;
 						// this.moveStartY = P.Y;
-						this.settings.touchMoveAnimation = true;
-						this.animate(function() {
-							return this.settings.touchMoveAnimation;
-						}, function() {
-							if(this.settings.autoAnalysis) {
-								this.reanalyze(function() {
+						if(e.event.type === "mousedown" && e.event.button == 1) {
+
+						} else {
+							this.settings.touchMoveAnimation = true;
+							this.animate(function() {
+								return this.settings.touchMoveAnimation;
+							}, function() {
+								if(this.settings.autoAnalysis) {
+									this.reanalyze(function() {
+										this.refresh();
+									});
+								} else {
 									this.refresh();
-								});
-							} else {
-								this.refresh();
-							}
-						}, 1000 / this.settings.touchMoveFps)
+								}
+							}, 1000 / this.settings.touchMoveFps)
+
+						}
 
 					} else {
 
@@ -453,11 +458,11 @@
 						X : e.touches[0].pageX,
 						Y : e.touches[0].pageY
 					});
-					
+
 					// var nowX, nowY, i, loop;
 					// nowX = parseInt(e.touches[0].pageX);
 					// nowY = parseInt(e.touches[0].pageY);
-					if(this.settings.mode === "move" && this.settings.touchMoveAnimation === true) {
+					if(this.settings.mode === "move" && this.settings.touchMoveAnimation === true && e.event.button == 0) {
 						this.Domain["moveSelectedNodes"]({
 							"dx" : P.X - this.touchCurrentX,
 							"dy" : P.Y - this.touchCurrentY
@@ -785,8 +790,8 @@
 							msg = "mode: " + S.mode + "; shape: " + recognizeResult.name + "; actioin:" + action + " ;undoable:" + undo;
 							break;
 						case "move":
-						// this.touchCurrentX = P.X;
-					// this.touchCurrentY = P.Y;
+							// this.touchCurrentX = P.X;
+							// this.touchCurrentY = P.Y;
 							changed = this.Domain["jumpMoveSelectedNodes"]({
 								"dx" : this.touchCurrentX - this.touchStartX,
 								"dy" : this.touchCurrentY - this.touchStartY,

@@ -26,28 +26,22 @@
 					this.bottomBar = this.mainView.getDockedItems()[1];
 
 					//init model Domain
-					this.Domain = new DirectFEA.Domain();
+					this.Domain = new $D.Domain();
 					window.Domain = this.Domain;
 
 					//init Renderer
-					this.Renderer = new DirectFEA.Renderer({
-						canvas : document.getElementById('workspace'),
-						ctx : document.getElementById('workspace').getContext("2d"),
-					})
+					this.Renderer = new $D.Renderer(document.getElementById('workspace'));
 					window.Renderer = this.Renderer;
 
 					this.settings = {};
 					Ext.apply(this.settings, {
 						mode : 'draw',
-						moveActivated : false,
-						fps : 10,
+						touchMoveAnimation : false,
+						touchMoveFps : 10,
+						// zoomPanAnimation : false,
+						// zoomPanFps : 100,
 						// analysisMode : "auto", //auto or manual
 						autoAnalysis : true,
-						// this.Renderer.ctx.font = "bold 12px sans-serif";
-						// this.Renderer.ctx.textBaseline = "bottom";
-						// this.Renderer.ctx.fillStyle="rgb(0,0,0)";
-						// this.Renderer.transform(1,0,0,-1,0,0);
-						// this.Renderer.ctx.fillText(m,10,-10);
 						showMessage : true,
 						messageBoxPositionX : 10,
 						messageBoxPositionY : 10,
@@ -57,6 +51,9 @@
 
 						modelScale : 2.0,
 						loadScale : 1.0,
+
+						mouseWheelSpeedFactor : 5, //1~10, scale = e^(wheelDelta*speedFactor/speedBase)
+						mouseWheelSpeedBase : 1000, //fixed
 
 						viewPortScale : 1.0,
 						viewPortShiftX : 0.0,
@@ -166,9 +163,11 @@
 						touchmove : this.onTouchMove,
 						touchstart : this.onTouchStart,
 						touchend : this.onTouchEnd,
-						mousewheel : function(e) {
-							// alert("mouse wheelasfasdfs")
-							console.log("e", e)
+						mousewheel : this.onMouseWheel,
+						mouseDown : function(e) {
+							console.log("mouse down")
+							console.log(e)
+
 						},
 						//tapcancel: function(){alert("touch cancle")},
 						pinchstart : this.onPinchStart,
@@ -296,7 +295,7 @@
 				initCanvasTransform : function() {
 					this.Renderer.setTransform(1.0, 0, 0, -1.0, 0, this.canvasHeight);
 				},
-				applyViewPortTransform : function() {
+				applydeltaTransform : function() {
 					this.Renderer.transform(this.settings.viewPortScale, 0, 0, this.settings.viewPortScale, this.settings.viewPortShiftX, this.settings.viewPortShiftY);
 				},
 				resetViewPort : function(scale, shiftX, shiftY) {
@@ -305,12 +304,14 @@
 					this.settings.viewPortShiftY = shiftY || 0.0;
 				},
 				applyInputStrokeStyle : function(scale) {
-					this.Renderer.ctx.strokeStyle = this.settings.inputStrokeStyle;
-					this.Renderer.ctx.lineWidth = this.settings.inputStrokeWidth / scale;
+					var R = this.Renderer, S = this.settings;
+					R.strokeStyle = S.inputStrokeStyle;
+					R.lineWidth = S.inputStrokeWidth / scale;
 				},
 				applyGridStyle : function(scale) {
-					this.Renderer.ctx.strokeStyle = this.settings.gridLineStyle;
-					this.Renderer.ctx.lineWidth = this.settings.gridLineWidth / scale;
+					var R = this.Renderer, S = this.settings;
+					R.strokeStyle = S.gridLineStyle;
+					R.lineWidth = S.gridLineWidth / scale;
 				},
 				getAutoDeformationScale : function(maxDispOnScreen) {
 					var a = $D.getAbsMax(this.Domain.theNodes, "dispX"), b = $D.getAbsMax(this.Domain.theNodes, "dispY"), m = a > b ? a : b;
@@ -322,11 +323,12 @@
 					return maxDispOnScreen / a;
 				},
 				clearScreen : function() {
-					this.Renderer.save();
+					var R = this.Renderer;
+					R.save();
 					this.initCanvasTransform();
-					this.Renderer.ctx.fillStyle = this.settings.canvasBgColor;
-					this.Renderer.ctx.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
-					this.Renderer.restore();
+					R.fillStyle = this.settings.canvasBgColor;
+					R.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
+					R.restore();
 				},
 				drawObjectStore : function(store, fn) {
 					var i, args = Array.prototype.slice.call(arguments, 2);
@@ -335,25 +337,31 @@
 					});
 				},
 				drawMessage : function() {
-					var C = this.Renderer.ctx, l = this.logs, len = l.length, S = this.settings;
+					var R = this.Renderer, //
+					S = this.settings, //
+					l = this.logs, //
+					len = l.length;
 					if(len > 0) {
 						var m = l[len - 1]
-						C.save();
-						C.font = S.messageTextFont;
-						C.fillStyle = S.messageTextFillStye;
-						C.transform(1, 0, 0, -1, 0, 0);
-						C.fillText(m, S.messageBoxPositionX, -S.messageBoxPositionY);
-						C.restore();
+						R.save();
+						R.font = S.messageTextFont;
+						R.fillStyle = S.messageTextFillStye;
+						R.transform(1, 0, 0, -1, 0, 0);
+						R.fillText(m, S.messageBoxPositionX, -S.messageBoxPositionY);
+						R.restore();
 					}
 				},
 				drawDomain : function() {
-					var R, vps, dfs, dfr;
-					R = this.Renderer;
-					vps = this.settings.viewPortScale;
-					dfs = this.settings.deformationScale;
-					dfr = this.settings.deformationResolution;
+					var R = this.Renderer, //
+					S = this.settings, //
+					vps = S.viewPortScale, //
+					dfs = S.deformationScale, //
+					draw = this.drawObjectStore, //
+					domain = this.Domain, //
+					nodes = domain.theNodes, //
+					eles = domain.theElements;
 
-					if(this.settings.showGrid) {
+					if(S.showGrid) {
 						var c1 = this.getCanvasCoordFromViewPort({
 							X : 0,
 							Y : 0
@@ -361,27 +369,27 @@
 							X : this.canvasWidth,
 							Y : this.canvasHeight
 						});
-						this.applyGridStyle(this.settings.viewPortScale);
-						R.drawGrid(this.settings.grid, this.settings.grid, c1.X, c2.X, c1.Y, c2.Y);
+						this.applyGridStyle(vps);
+						R.drawGrid(S.grid, S.grid, c1.X, c2.X, c1.Y, c2.Y);
 					}
-					this.drawObjectStore(this.Domain.theElements, "display", this.Renderer, this.settings.viewPortScale);
-					this.drawObjectStore(this.Domain.theSPCs, "display", this.Renderer, this.settings.viewPortScale);
-					this.drawObjectStore(this.Domain.thePatterns[1].Loads, "display", this.Renderer, this.settings.viewPortScale);
-					this.drawObjectStore(this.Domain.theNodes, "display", this.Renderer, this.settings.viewPortScale);
+					draw(eles, "display", R, vps);
+					draw(domain.theSPCs, "display", R, vps);
+					draw(domain.thePatterns[1].Loads, "display", R, vps);
+					draw(nodes, "display", R, vps);
 
-					if(this.Domain.deformationAvailable && this.settings.showDeformation) {
-						this.drawObjectStore(this.Domain.theElements, "displayDeformation", this.Renderer, this.settings.viewPortScale, this.settings.deformationScale, this.settings.deformationResolution);
-						this.drawObjectStore(this.Domain.theNodes, "displayDeformation", this.Renderer, this.settings.viewPortScale, this.settings.deformationScale);
+					if(this.Domain.deformationAvailable && S.showDeformation) {
+						draw(eles, "displayDeformation", R, vps, dfs, S.deformationResolution);
+						draw(nodes, "displayDeformation", R, vps, dfs);
 					}
-					if(this.Domain.deformationAvailable && this.settings.showMoment) {
-						this.drawObjectStore(this.Domain.theElements, "displayMoment", this.Renderer, this.settings.viewPortScale, this.settings.momentScale, this.settings.momentResolution);
+					if(this.Domain.deformationAvailable && S.showMoment) {
+						draw(eles, "displayMoment", R, vps, S.momentScale, S.momentResolution);
 					}
 				},
 				refresh : function() {
 					this.clearScreen();
 					this.initCanvasTransform();
 					this.drawMessage();
-					this.applyViewPortTransform();
+					this.applydeltaTransform();
 					this.drawDomain();
 				},
 				save : function() {
@@ -407,18 +415,22 @@
 				},
 				onTouchStart : function(e, el, obj) {
 					// this.logs.push("start!\nnextline");
+					console.log("touch start!")
+					console.log("type: " + e.event.type);
 					var P = this.getCanvasCoordFromPage({
 						X : e.touches[0].pageX,
 						Y : e.touches[0].pageY
 					});
-					this.mouseX = P.X;
-					this.mouseY = P.Y;
+					this.touchCurrentX = P.X;
+					this.touchCurrentY = P.Y;
+					this.touchStartX = P.X;
+					this.touchStartY = P.Y;
 					if(this.settings.mode === "move") {
-						this.moveStartX = P.X;
-						this.moveStartY = P.Y;
-						this.settings.moveActivated = true;
+						// this.moveStartX = P.X;
+						// this.moveStartY = P.Y;
+						this.settings.touchMoveAnimation = true;
 						this.animate(function() {
-							return this.settings.moveActivated;
+							return this.settings.touchMoveAnimation;
 						}, function() {
 							if(this.settings.autoAnalysis) {
 								this.reanalyze(function() {
@@ -427,44 +439,67 @@
 							} else {
 								this.refresh();
 							}
-						}, 1000 / this.settings.fps)
+						}, 1000 / this.settings.touchMoveFps)
 
 					} else {
+
 						this.inputStrokes = [];
 						this.inputStrokes.push(P);
 					}
 				},
 				onTouchMove : function(e, el, obj) {
-					// console.log("move", e)
+					// console.log("move: "+ e.event.type)
 					var P = this.getCanvasCoordFromPage({
 						X : e.touches[0].pageX,
 						Y : e.touches[0].pageY
 					});
+					
 					// var nowX, nowY, i, loop;
 					// nowX = parseInt(e.touches[0].pageX);
 					// nowY = parseInt(e.touches[0].pageY);
-					if(this.settings.mode === "move" && this.settings.moveActivated === true) {
+					if(this.settings.mode === "move" && this.settings.touchMoveAnimation === true) {
 						this.Domain["moveSelectedNodes"]({
-							"dx" : P.X - this.mouseX,
-							"dy" : P.Y - this.mouseY
+							"dx" : P.X - this.touchCurrentX,
+							"dy" : P.Y - this.touchCurrentY
 						});
 					} else {
-						var l;
-						this.inputStrokes.push(P);
-						l = this.inputStrokes.length;
-						this.applyInputStrokeStyle(this.settings.viewPortScale);
-						this.Renderer.drawLine(this.inputStrokes[l - 2], this.inputStrokes[l - 1]);
+						if(e.event.type === "mousemove" && e.event.button == 1) {
+							// scale = S.viewPortScale;
+							// shiftX = S.viewPortScale * P.X*(1-s) + S.viewPortShiftX;
+							// shiftY = S.viewPortScale * P.Y*(1-s) + S.viewPortShiftY;
+							var c1x = this.touchCurrentX, //
+							c1y = this.touchCurrentY, //
+							c0x = this.touchStartX, //
+							c0y = this.touchStartY;
+							//
+							//s = e.scale;
+							this.deltaTransform(1, c1x - c0x, c1y - c0y);
+
+							//this.resetViewPort(S.viewPortScale, P.X - this.mouseX, P.Y - this.mouseY);
+							//this.refresh();
+
+						} else {
+							var l;
+							this.inputStrokes.push(P);
+							l = this.inputStrokes.length;
+							this.applyInputStrokeStyle(this.settings.viewPortScale);
+							this.Renderer.drawLine(this.inputStrokes[l - 2], this.inputStrokes[l - 1]);
+						}
+
 					}
-					this.mouseX = P.X;
-					this.mouseY = P.Y;
+					this.touchCurrentX = P.X;
+					this.touchCurrentY = P.Y;
+					// this.mouseX = P.X;
+					// this.mouseY = P.Y;
 
 				},
 				onTouchEnd : function(e, el, obj) {
 					if(this.settings.mode === "move") {
-						this.settings.moveActivated = false;
+						this.settings.touchMoveAnimation = false;
 					}
-					console.log("e", e)
-					if(e.touches.length === 0 || e.touches.length === 1) {
+					if(e.event.type === "mouseup" && e.event.button == 1) {
+						this.onPinchEnd();
+					} else if(e.touches.length === 0 || e.touches.length === 1) {
 						//var result = this.shapeRecognizer.Recognize(this.inputStrokes, false);
 						// this.act(result, this.settings)
 						this.oneStrokeHandler();
@@ -474,14 +509,14 @@
 
 				},
 				onPinchStart : function(e, el, obj) {
-					var first = this.getCanvasCoordFromPage({
+					var R = this.Renderer, first = this.getCanvasCoordFromPage({
 						X : e.touches[0].pageX,
 						Y : e.touches[0].pageY
 					}), second = this.getCanvasCoordFromPage({
 						X : e.touches[1].pageX,
 						Y : e.touches[1].pageY
-					});
-					this.pinchTranslate0 = {
+					}), S = this.settings;
+					this.pinchCenter0 = {
 						X : 0.5 * (first.X + second.X),
 						Y : 0.5 * (first.Y + second.Y)
 					};
@@ -490,40 +525,69 @@
 					if(!Ext.isDefined(e.touches[0]) || !Ext.isDefined(e.touches[1])) {
 						return;
 					}
-
 					var first = this.getCanvasCoordFromPage({
 						X : e.touches[0].pageX,
 						Y : e.touches[0].pageY
-					}), second = this.getCanvasCoordFromPage({
+					}), //
+					second = this.getCanvasCoordFromPage({
 						X : e.touches[1].pageX,
 						Y : e.touches[1].pageY
-					}), m11, m12, m21, m22, cx, cy, dx, dy;
-					this.pinchTranslate1 = {
+					});
+					this.pinchCenter1 = {
 						X : 0.5 * (first.X + second.X),
 						Y : 0.5 * (first.Y + second.Y)
 					};
-					m11 = e.scale;
-					m12 = 0;
-					m21 = 0;
-					m22 = e.scale;
-					cx = this.pinchTranslate1.X - this.pinchTranslate1.X * e.scale;
-					cy = this.pinchTranslate1.Y - this.pinchTranslate1.Y * e.scale;
-					dx = (this.pinchTranslate1.X - this.pinchTranslate0.X) * e.scale;
-					dy = (this.pinchTranslate1.Y - this.pinchTranslate0.Y) * e.scale;
-					this.Renderer.save();
-					this.Renderer.ctx.transform(m11, m12, m21, m22, cx + dx, cy + dy);
-					this.pinchScale = e.scale;
-					this.pinchShiftX = cx + dx;
-					this.pinchShiftY = cy + dy;
+					var c1x = this.pinchCenter1.X, //
+					c1y = this.pinchCenter1.Y, //
+					c0x = this.pinchCenter0.X, //
+					c0y = this.pinchCenter0.Y, //
+					s = e.scale;
+					this.deltaTransform(s, c1x - c0x * s, c1y - c0y * s);
+				},
+				onMouseWheel : function(event) {
+					// console.log("event")
+					// console.log(event)
+					var e = event.browserEvent, //
+					S = this.settings, //
+					R = this.Renderer, //
+					s = Math.pow(Math.E, e.wheelDelta * S.mouseWheelSpeedFactor / S.mouseWheelSpeedBase);
+					var P = this.getCanvasCoordFromPage({
+						X : e.pageX,
+						Y : e.pageY
+					});
+					// this.deltaTransform(s,P.X*(1-s),P.Y*(1-s));
+					// var R = this.Renderer;
+					// R.save();
+					// R.transform(dScale, 0, 0, dScale, dShiftX, dShiftY);
+					// this.deltaScale = dScale;
+					// this.deltaShiftX = dShiftX;
+					// this.deltaShiftY = dShiftY;
+					// this.clearScreen();
+					// this.drawDomain();
+					// R.restore();
+
+					scale = S.viewPortScale * s;
+					shiftX = S.viewPortScale * P.X * (1 - s) + S.viewPortShiftX;
+					shiftY = S.viewPortScale * P.Y * (1 - s) + S.viewPortShiftY;
+					this.resetViewPort(scale, shiftX, shiftY);
+					this.refresh();
+				},
+				deltaTransform : function(dScale, dShiftX, dShiftY) {
+					var R = this.Renderer;
+					R.save();
+					R.transform(dScale, 0, 0, dScale, dShiftX, dShiftY);
+					this.deltaScale = dScale;
+					this.deltaShiftX = dShiftX;
+					this.deltaShiftY = dShiftY;
 					this.clearScreen();
 					this.drawDomain();
-					this.Renderer.restore();
+					R.restore();
 				},
 				onPinchEnd : function() {
-					var scale, shiftX, shiftY;
-					scale = this.settings.viewPortScale * this.pinchScale;
-					shiftX = this.settings.viewPortScale * this.pinchShiftX + this.settings.viewPortShiftX;
-					shiftY = this.settings.viewPortScale * this.pinchShiftY + this.settings.viewPortShiftY;
+					var S = this.settings;
+					scale = S.viewPortScale * this.deltaScale;
+					shiftX = S.viewPortScale * this.deltaShiftX + S.viewPortShiftX;
+					shiftY = S.viewPortScale * this.deltaShiftY + S.viewPortShiftY;
 					this.resetViewPort(scale, shiftX, shiftY);
 					this.refresh();
 				},
@@ -666,7 +730,7 @@
 				// },
 
 				oneStrokeHandler : function() {
-					var undo = true, changed = false, msg = "", S = this.settings,action;
+					var undo = true, changed = false, msg = "", S = this.settings, action;
 					switch (this.settings.mode) {
 
 						case "draw":
@@ -691,13 +755,13 @@
 									undo = "NA";
 									action = "no found";
 								}
-								msg = "mode: " + S.mode + "; shape: " + recognizeResult.name + "; actioin:" + action + " ;undoable:"+undo;
+								msg = "mode: " + S.mode + "; shape: " + recognizeResult.name + "; actioin:" + action + " ;undoable:" + undo;
 							}
 							break;
 						case "select":
 							var recognizeResult = this.shapeRecognizer.Recognize(this.inputStrokes, false), //
 							d = $D.distance(recognizeResult.data.from, recognizeResult.data.to), //
-							l = recognizeResult.data.PathLength,action;
+							l = recognizeResult.data.PathLength, action;
 							if(d / l > this.settings.circleSelectThreshold) {
 								action = "intersectSelect";
 								changed = this.Domain["intersectSelect"]({
@@ -707,8 +771,8 @@
 								if(l < this.settings.clickSelectThreshold) {
 									// action = "clickSelect";
 									// changed = this.Domain["clickSelect"]({
-										// "X" : recognizeResult.data.from.X,
-										// "Y" : recognizeResult.data.from.Y
+									// "X" : recognizeResult.data.from.X,
+									// "Y" : recognizeResult.data.from.Y
 									// });
 								} else {
 									action = "circleSelect";
@@ -718,24 +782,24 @@
 								}
 							}
 							undo = true;
-							msg = "mode: " + S.mode + "; shape: " + recognizeResult.name + "; actioin:" + action + " ;undoable:"+undo;
+							msg = "mode: " + S.mode + "; shape: " + recognizeResult.name + "; actioin:" + action + " ;undoable:" + undo;
 							break;
 						case "move":
+						// this.touchCurrentX = P.X;
+					// this.touchCurrentY = P.Y;
 							changed = this.Domain["jumpMoveSelectedNodes"]({
-								"dx" : this.mouseX - this.moveStartX,
-								"dy" : this.mouseY - this.moveStartY,
+								"dx" : this.touchCurrentX - this.touchStartX,
+								"dy" : this.touchCurrentY - this.touchStartY,
 							});
 							action = "moveSelectedComponent";
 							undo = true;
-							msg = "mode: " + S.mode + "; actioin:" + action + " ;undoable:"+undo;
+							msg = "mode: " + S.mode + "; actioin:" + action + " ;undoable:" + undo;
 
 							break;
 						default:
 							alert("mode not found!")
 							break;
 					}
-					
-					
 
 					if(!changed) {
 						console.log("do nothing");
@@ -744,7 +808,6 @@
 						this.refresh();
 						return;
 					}
-					
 
 					// alert("is ready to run? "+this.Domain.isReadyToRun());
 					var inlineProc = function() {

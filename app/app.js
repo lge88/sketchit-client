@@ -164,11 +164,12 @@
 						touchstart : this.onTouchStart,
 						touchend : this.onTouchEnd,
 						mousewheel : this.onMouseWheel,
-						mouseDown : function(e) {
-							console.log("mouse down")
-							console.log(e)
-
-						},
+						// mousedown : function(e) {
+						// console.log("mouse down")
+						// console.log(e)
+						//
+						// },
+						// mousemove : this.onMouseMove,
 						//tapcancel: function(){alert("touch cancle")},
 						pinchstart : this.onPinchStart,
 						pinch : this.onPinch,
@@ -415,8 +416,8 @@
 				},
 				onTouchStart : function(e, el, obj) {
 					// this.logs.push("start!\nnextline");
-					console.log("touch start!")
-					console.log("type: " + e.event.type);
+					// console.log("touch start!")
+					// console.log("type: " + e.event.type);
 					var P = this.getCanvasCoordFromPage({
 						X : e.touches[0].pageX,
 						Y : e.touches[0].pageY
@@ -425,10 +426,11 @@
 					this.touchCurrentY = P.Y;
 					this.touchStartX = P.X;
 					this.touchStartY = P.Y;
+					this.shiftKey = e.event.shiftKey; 
 					if(this.settings.mode === "move") {
 						// this.moveStartX = P.X;
 						// this.moveStartY = P.Y;
-						if(e.event.type === "mousedown" && e.event.button == 1) {
+						if((e.event.type === "mousedown" && e.event.button == 1) || e.event.shiftKey) {
 
 						} else {
 							this.settings.touchMoveAnimation = true;
@@ -452,8 +454,19 @@
 						this.inputStrokes.push(P);
 					}
 				},
+				// onMouseMove : function(e) {
+					// if(e.browserEvent.shiftKey) {
+						// // var c1x = this.touchCurrentX, //
+						// // c1y = this.touchCurrentY, //
+						// // c0x = this.touchStartX, //
+						// // c0y = this.touchStartY;
+						// // this.deltaTransform(1, c1x - c0x, c1y - c0y);
+						// this.deltaTransform(1, this.touchCurrentX - this.touchStartX, this.touchCurrentY - this.touchStartY);
+					// }
+// 
+				// },
 				onTouchMove : function(e, el, obj) {
-					// console.log("move: "+ e.event.type)
+					// console.log("move: ", e)
 					var P = this.getCanvasCoordFromPage({
 						X : e.touches[0].pageX,
 						Y : e.touches[0].pageY
@@ -462,23 +475,24 @@
 					// var nowX, nowY, i, loop;
 					// nowX = parseInt(e.touches[0].pageX);
 					// nowY = parseInt(e.touches[0].pageY);
-					if(this.settings.mode === "move" && this.settings.touchMoveAnimation === true && e.event.button == 0) {
+					if(this.settings.mode === "move" && this.settings.touchMoveAnimation === true && e.event.button == 0 && !e.event.shiftKey) {
 						this.Domain["moveSelectedNodes"]({
 							"dx" : P.X - this.touchCurrentX,
 							"dy" : P.Y - this.touchCurrentY
 						});
 					} else {
-						if(e.event.type === "mousemove" && e.event.button == 1) {
+						if((e.event.type === "mousemove" && e.event.button == 1) || (e.event.type === "mousemove" && e.event.shiftKey)) {
 							// scale = S.viewPortScale;
 							// shiftX = S.viewPortScale * P.X*(1-s) + S.viewPortShiftX;
 							// shiftY = S.viewPortScale * P.Y*(1-s) + S.viewPortShiftY;
-							var c1x = this.touchCurrentX, //
-							c1y = this.touchCurrentY, //
-							c0x = this.touchStartX, //
-							c0y = this.touchStartY;
+							
+							// var c1x = this.touchCurrentX, //
+							// c1y = this.touchCurrentY, //
+							// c0x = this.touchStartX, //
+							// c0y = this.touchStartY;
 							//
 							//s = e.scale;
-							this.deltaTransform(1, c1x - c0x, c1y - c0y);
+							this.deltaTransform(1, this.touchCurrentX - this.touchStartX, this.touchCurrentY - this.touchStartY);
 
 							//this.resetViewPort(S.viewPortScale, P.X - this.mouseX, P.Y - this.mouseY);
 							//this.refresh();
@@ -492,6 +506,7 @@
 						}
 
 					}
+					// this.shiftKey = e.event.shiftKey;  
 					this.touchCurrentX = P.X;
 					this.touchCurrentY = P.Y;
 					// this.mouseX = P.X;
@@ -502,7 +517,8 @@
 					if(this.settings.mode === "move") {
 						this.settings.touchMoveAnimation = false;
 					}
-					if(e.event.type === "mouseup" && e.event.button == 1) {
+					if((e.event.type === "mouseup" && e.event.button == 1) || (e.event.type === "mouseup" && this.shiftKey)) {
+						console.log("pinch end")
 						this.onPinchEnd();
 					} else if(e.touches.length === 0 || e.touches.length === 1) {
 						//var result = this.shapeRecognizer.Recognize(this.inputStrokes, false);
@@ -511,6 +527,7 @@
 						//this.refresh();
 					}
 					this.inputStrokes = [];
+					this.shiftKey = e.event.shiftKey;  
 
 				},
 				onPinchStart : function(e, el, obj) {

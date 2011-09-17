@@ -1,5 +1,137 @@
 (function() {
+	window.sketchit = $S = {};
 	var $D = DirectFEA;
+
+	//set options
+	//$S.setOptions(options);
+
+	//init views
+	$S.mainView = $S.render({
+		xtype : 'sketchitMain'
+	}, Ext.getBody());
+
+	$S.canvas = $S.mainView.getComponent(0);
+
+	$S.topBar = $S.mainView.getDockedItems()[0];
+
+	$S.bottomBar = $S.mainView.getDockedItems()[1];
+
+	//init model Domain
+	$S.Domain = new $D.Domain();
+	window.Domain = $S.Domain;
+
+	//init Renderer
+	$S.Renderer = new $D.Renderer(document.getElementById('workspace'));
+	window.Renderer = $S.Renderer;
+
+	$S.settings = {};
+	Ext.apply($S.settings, {
+		mode : 'draw',
+		touchMoveAnimation : false,
+		touchMoveFps : 10,
+		// zoomPanAnimation : false,
+		// zoomPanFps : 100,
+		// analysisMode : "auto", //auto or manual
+		autoAnalysis : true,
+		showMessage : true,
+		messageBoxPositionX : 10,
+		messageBoxPositionY : 10,
+		messageTextFont : "bold 12px sans-serif",
+		messageTextFillStye : "rgb(0,0,0)",
+		messageLastTime : 5,
+
+		modelScale : 2.0,
+		loadScale : 1.0,
+
+		mouseWheelSpeedFactor : 5, //1~10, scale = e^(wheelDelta*speedFactor/speedBase)
+		mouseWheelSpeedBase : 1000, //fixed
+
+		viewPortScale : 1.0,
+		viewPortShiftX : 0.0,
+		viewPortShiftY : 0.0,
+
+		showDeformation : true,
+		showMoment : true,
+
+		deformationScale : 2000,
+		momentScale : 0.01,
+		autoDeformationScale : true,
+		maxDeformationOnScreen : 40,
+		deformationResolution : 20,
+		autoMomentScale : true,
+		maxMomentOnScreen : 80,
+		momentResolution : 20,
+
+		snapToNode : true,
+		snapToNodeThreshold : 50,
+
+		snapToLine : true,
+		snapToLineThreshold : 25,
+
+		snapToGrid : true,
+		grid : 20,
+		gridLineWidth : 1,
+		gridLineStyle : "rgba(0,0,0,0.5)",
+
+		SPCSnapToDirection : true,
+		SPCSnapToDirectionThreshold : 0.2,
+
+		SPCSnapToNode : true,
+		SPCSnapToNodeThreshold : 15,
+
+		circleSnapToSPCThreshold : 25,
+
+		LoadSnapToNodeThreshold : 15,
+		LoadSnapToLineThreshold : 5,
+
+		autoMergeNodeOnLine : true,
+		autoMergeNodeOnLineThreshold : 1,
+
+		showNodeId : false,
+		showElementId : false,
+		showMarks : false,
+		showGrid : true,
+		showSPC : true,
+
+		canvasBgColor : "rgb(255,255,255)",
+		inputStrokeStyle : "rgb(0,0,255)",
+		inputStrokeWidth : 2,
+
+		defaultLineELementType : DirectFEA.ElasticBeamColumn,
+		defaultGeomTransf : Domain.theGeomTransfs[2],
+		defaultNodeLoadType : "load",
+
+		UniformElementLoadDirectionThreshold : 0.3,
+		UniformElementLoadSnapToLineThreshold : 15,
+
+		circleSelectThreshold : 0.1,
+		clickSelectThreshold : 10
+
+	})
+
+	//this.settings.defaultGeomTransf = Domain.theGeomTransfs[2];
+
+	this.onOrientationchange.call(this);
+
+	//init input stroke array
+	this.inputStrokes = [];
+
+	//init shape recognizer
+	this.shapeRecognizer = new DollarRecognizer();
+
+	//init command recognizer
+	//this.commandGen = {};
+
+	//init event handlers
+	this.initHandlers();
+
+	//init canvas transform
+
+	//this.Renderer.initTransform();
+
+	// first render
+	this.refresh();
+
 	Ext.regApplication({
 		name : "sketchit",
 		glossOnIcon : false,
@@ -15,26 +147,15 @@
 					//this.setOptions(options);
 
 					//init views
-					console.log("in app.js")
-					this.mainView = new sketchitMainView({
-						listeners : {
-							afterrender : function() {
-								sketchit.controllers.main.canvas = this.getComponent(0);
-								sketchit.controllers.main.topBar = this.getDockedItems()[0];
-								sketchit.controllers.main.bottomBar = this.getDockedItems()[1];
+					this.mainView = this.render({
+						xtype : 'sketchitMain'
+					}, Ext.getBody());
 
-							}
-						}
-					})
-					// this.mainView = this.render({
-					// xtype : 'sketchitMain'
-					// }, Ext.getBody());
-					//
-					// this.canvas = this.mainView.getComponent(0);
-					//
-					// this.topBar = this.mainView.getDockedItems()[0];
-					//
-					// this.bottomBar = this.mainView.getDockedItems()[1];
+					this.canvas = this.mainView.getComponent(0);
+
+					this.topBar = this.mainView.getDockedItems()[0];
+
+					this.bottomBar = this.mainView.getDockedItems()[1];
 
 					//init model Domain
 					this.Domain = new $D.Domain();
@@ -169,11 +290,10 @@
 					})
 
 					// init canvas handlers
-
 					this.canvas.mon(this.canvas.el, {
 						doubletap : this.onDoubleTap,
 						touchmove : this.onTouchMove,
-						// touchstart : this.onTouchStart,
+						touchstart : this.onTouchStart,
 						touchend : this.onTouchEnd,
 						mousewheel : this.onMouseWheel,
 						// mousedown : function(e) {
@@ -188,17 +308,9 @@
 						pinchend : this.onPinchEnd,
 						scope : this
 					});
-					console.log("dom",this.canvas.getEl().dom);
-					var me = this
-					this.canvas.getEl().dom.addEventListener("mousedown", function(e) {
-						console.log("this is my touch, e", e);
-						me.onTouchStart(e);
-					});
 
 					//this.init Menu Handlers;
 					//run button
-					console.log("button", this.bottomBar.getComponent(0).getComponent(3))
-					console.log("ele", this.bottomBar.getComponent(0).getComponent(3).getEl())
 					this.bottomBar.getComponent(0).getComponent(3).setHandler(function() {
 						this.reanalyze();
 					}, this);

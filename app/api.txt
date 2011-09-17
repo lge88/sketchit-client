@@ -1,9 +1,9 @@
 1. Overview:
-	SketchIT is an event handle engine for javacript applications. It maps user input event to a command output, which can be further used by command pattern based applications. 
+	Event2cmd is an event handle engine for javacript applications. It maps user input event to a command, which will be executed by the controller. 
 	
 	It supports:
 		- traditional mouse and keyboard events;
-		- tablet touch events, including multi-touch events;
+		- tablet touch events, especially multi-touch events;
 		- single stroke sketch events;
 		
 	It is going to support: 
@@ -12,8 +12,8 @@
 
 2. Initialize:
 	Load sketchit.js, then use:	
-		controller = new SketchIT();
-	or 	controller = new SketchIT(config);
+		controller = new Event2cmd();
+	or 	controller = new Event2cmd(config);
 
 3. Configuration: 
 	You can use a configure object to do the configuration when initializing, you can also use configure() method to do that later:
@@ -21,6 +21,8 @@
 		
 	Available configurations: 
 	
+	- controller : object
+		Default is window object.
 	- enable_multi_stroke : boolean
 		Default is false.
 	- multi_stroke_dt : number
@@ -30,7 +32,9 @@
 		the time interval threshold for the hold gesture. Unit is millisecond, default is 500.
 
 	Example:
+		var myApp = new app();
 		controller.configure({
+			controller : myApp,
 			enable_multi_stroke: true,
 			multi_stroke_dt: 800,
 			hold_dt: 500
@@ -39,8 +43,12 @@
 
 4. Public properties:
 	
+	- originalEvent : object
+		Original event captured by browser.
 	- pressedKey : object
+		A bitmap of pressed keys. Use pressdeKey[keycode] to get the value. If it is true, then it is pressed.
 	- howManyFingers: number
+		For touch events 
 	- pageX : number
 	- pageY : number
 	- startX : number

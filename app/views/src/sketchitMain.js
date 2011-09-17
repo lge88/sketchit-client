@@ -36,5 +36,6 @@ sketchit.views.Main = Ext.extend(Ext.Panel, {
 		c.Renderer.canvasOriginY = d[0].getHeight();
 	}*/
 });
-
+sketchitMainView = sketchit.views.Main;
+console.log("herer")
 Ext.reg('sketchitMain', sketchit.views.Main);

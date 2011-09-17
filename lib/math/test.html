@@ -20,7 +20,7 @@
 			function logTitle(title) {
 				document.getElementById('logDiv').innerHTML += 
 				'=============================================<br/>' +
-				'<b>' + title + '</b><br/>' +
+				'<b>' + title + '<\/b><br/>' +
 				'=============================================' + '<br/><br/>'
 			}
 			
@@ -29,7 +29,7 @@
 				// Also tracks min and max times
 				
 				if(!f) {
-					log('<i>' + name + ': Unsupported</i>');
+					log('<i>' + name + ': Unsupported<\/i>');
 					return;
 				}
 				
@@ -53,7 +53,7 @@
 				
 				var avg = totalTime / runCount;
 				
-				log('<i>' + name + '</i> - Avg: <b>' + avg + 'ms</b>, Min: ' + minTime + 'ms, Max: ' + maxTime + 'ms');
+				log('<i>' + name + '<\/i> - Avg: <b>' + avg + 'ms<\/b>, Min: ' + minTime + 'ms, Max: ' + maxTime + 'ms');
 			}
 			
 			function testSet(name, tests) {

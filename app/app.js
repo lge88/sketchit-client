@@ -58,6 +58,8 @@
 						viewPortScale : 1.0,
 						viewPortShiftX : 0.0,
 						viewPortShiftY : 0.0,
+						maxViewPortScale:20,
+						minViewPortScale:0.1,
 
 						showDeformation : true,
 						showMoment : true,
@@ -139,6 +141,7 @@
 					//this.Renderer.initTransform();
 
 					// first render
+					this.resetViewPort();
 					this.refresh();
 				},
 				initHandlers : function() {
@@ -261,7 +264,11 @@
 
 				mouseX : undefined,
 				mouseY : undefined,
-				logs : [],
+				
+				currentTransform:0,
+				transformStack:[],
+				logs : [], // stores every steps info
+				history: [], // only store effective undoable operations
 
 				getCanvasCoordFromViewPort : function(p) {
 					return {
@@ -295,14 +302,28 @@
 				},
 				initCanvasTransform : function() {
 					this.Renderer.setTransform(1.0, 0, 0, -1.0, 0, this.canvasHeight);
+					this.currentTransform=0,
+					this.Renderer.save();
 				},
-				applydeltaTransform : function() {
+				applyViewPortTransform : function() {
 					this.Renderer.transform(this.settings.viewPortScale, 0, 0, this.settings.viewPortScale, this.settings.viewPortShiftX, this.settings.viewPortShiftY);
 				},
+				
+				goPrevTranform:function(){
+					
+				},
+				goNextTransform:function(){
+					
+					
+				},
+				
+				
 				resetViewPort : function(scale, shiftX, shiftY) {
 					this.settings.viewPortScale = scale || 1.0;
 					this.settings.viewPortShiftX = shiftX || 0.0;
 					this.settings.viewPortShiftY = shiftY || 0.0;
+					this.maxDeltaScale = this.settings.maxViewPortScale / this.settings.viewPortScale; 
+					this.minDeltaScale = this.settings.minViewPortScale / this.settings.viewPortScale; 
 				},
 				applyInputStrokeStyle : function(scale) {
 					var R = this.Renderer, S = this.settings;
@@ -390,7 +411,7 @@
 					this.clearScreen();
 					this.initCanvasTransform();
 					this.drawMessage();
-					this.applydeltaTransform();
+					this.applyViewPortTransform();
 					this.drawDomain();
 				},
 				save : function() {
@@ -454,19 +475,8 @@
 						this.inputStrokes.push(P);
 					}
 				},
-				// onMouseMove : function(e) {
-					// if(e.browserEvent.shiftKey) {
-						// // var c1x = this.touchCurrentX, //
-						// // c1y = this.touchCurrentY, //
-						// // c0x = this.touchStartX, //
-						// // c0y = this.touchStartY;
-						// // this.deltaTransform(1, c1x - c0x, c1y - c0y);
-						// this.deltaTransform(1, this.touchCurrentX - this.touchStartX, this.touchCurrentY - this.touchStartY);
-					// }
-// 
-				// },
 				onTouchMove : function(e, el, obj) {
-					// console.log("move: ", e)
+					console.log("move: ", e)
 					var P = this.getCanvasCoordFromPage({
 						X : e.touches[0].pageX,
 						Y : e.touches[0].pageY
@@ -594,6 +604,9 @@
 					this.resetViewPort(scale, shiftX, shiftY);
 					this.refresh();
 				},
+				absTransform: function(){
+					
+				},
 				deltaTransform : function(dScale, dShiftX, dShiftY) {
 					var R = this.Renderer;
 					R.save();
@@ -605,13 +618,22 @@
 					this.drawDomain();
 					R.restore();
 				},
-				onPinchEnd : function() {
+				updateViewPort:function(){
 					var S = this.settings;
 					scale = S.viewPortScale * this.deltaScale;
 					shiftX = S.viewPortScale * this.deltaShiftX + S.viewPortShiftX;
 					shiftY = S.viewPortScale * this.deltaShiftY + S.viewPortShiftY;
 					this.resetViewPort(scale, shiftX, shiftY);
+				},
+				onPinchEnd : function() {
+					this.updateViewPort();
 					this.refresh();
+					// var S = this.settings;
+					// scale = S.viewPortScale * this.deltaScale;
+					// shiftX = S.viewPortScale * this.deltaShiftX + S.viewPortShiftX;
+					// shiftY = S.viewPortScale * this.deltaShiftY + S.viewPortShiftY;
+					// this.resetViewPort(scale, shiftX, shiftY);
+					// this.refresh();
 				},
 				clearAll : function() {
 					this.Domain.wipeAll();

@@ -1,11 +1,105 @@
 (function() {
 	window.sketchit = $S = {};
 	var $D = DirectFEA;
+	
+	$S.mainView = new sketchitMainView({
+		listeners:{
+			afterrender:function(){
+				$S.canvas = this.getComponent(0);
+				$S.topBar = this.getDockedItems()[0];
+				$S.bottomBar = this.getDockedItems()[1];
+				$S.topBar_grid = $S.topBar.getComponent(0).getComponent(2);
+				$S.topBar_deformation = $S.topBar.getComponent(0).getComponent(4);
+				$S.topBar_moment = $S.topBar.getComponent(0).getComponent(5);
+				$S.topBar_autoRun = $S.topBar.getComponent(0).getComponent(3);
+				$S.topBar_grid = $S.topBar.getComponent(0).getComponent(2);
+				
+				$S.bottomBar_run = $S.bottomBar.getComponent(0).getComponent(3);
+				
+					//grid button
+					this.topBar.getComponent(0).getComponent(2).setHandler(function() {
+						this.settings.showGrid = !this.settings.showGrid;
+						this.refresh();
+					}, this);
+					//deformation button
+					this.topBar.getComponent(0).getComponent(4).setHandler(function() {
+						this.settings.showDeformation = !this.settings.showDeformation;
+						this.reanalyze(function() {
+							this.refresh();
+						});
+					}, this);
+					//moment button
+					this.topBar.getComponent(0).getComponent(5).setHandler(function() {
+						this.settings.showMoment = !this.settings.showMoment;
+						// this.refresh();
+						this.reanalyze(function() {
+							this.refresh();
+						})
+					}, this);
+					//real time button
+					this.topBar.getComponent(0).getComponent(3).setHandler(function() {
+						this.settings.autoAnalysis = !this.settings.autoAnalysis;
+						if(this.settings.autoAnalysis === true) {
+							this.reanalyze(function() {
+								this.refresh();
+							})
+						}
+						//this.refresh();
+					}, this);
+					//clear button
+					this.bottomBar.getComponent(2).setHandler(this.clearAll, this);
+					//unselect all button
+					this.bottomBar.getComponent(3).setHandler(function() {
+						if(!this.Domain["unselectAll"]()) {
+							console.log("do nothing");
+						}
+						this.Domain.commit();
+						this.refresh();
+					}, this);
+					//delete button
+					this.bottomBar.getComponent(4).setHandler(function() {
+						if(!this.Domain["removeSelectedElement"]()) {
+							console.log("do nothing");
+						}
+						this.Domain.commit();
+						if(this.settings.autoAnalysis) {
+							this.reanalyze(function() {
+								this.refresh();
+							});
+						} else {
+							this.refresh();
+						}
+					}, this);
+					//undo button
+					this.bottomBar.getComponent(5).setHandler(this.undo, this);
+					this.bottomBar.getComponent(5).setDisabled(true);
+					//redo button
+					this.bottomBar.getComponent(6).setHandler(this.redo, this);
+					this.bottomBar.getComponent(6).setDisabled(true);
+					//save button
+					this.bottomBar.getComponent(7).setHandler(this.save, this);
+
+					//mode toggle button
+					this.bottomBar.getComponent(11).on({
+						toggle : function() {
+							this.settings.mode = this.bottomBar.getComponent(11).getPressed().text;
+						},
+						scope : this
+					});
+				
+				
+				
+				
+			}
+		}
+	})
 
 	//set options
 	//$S.setOptions(options);
 
 	//init views
+	
+	
 	$S.mainView = $S.render({
 		xtype : 'sketchitMain'
 	}, Ext.getBody());

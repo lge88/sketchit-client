@@ -37,5 +37,5 @@ sketchit.views.Main = Ext.extend(Ext.Panel, {
 	}*/
 });
 sketchitMainView = sketchit.views.Main;
-console.log("herer")
+// console.log("herer")
 Ext.reg('sketchitMain', sketchit.views.Main);

@@ -173,7 +173,7 @@
 					this.canvas.mon(this.canvas.el, {
 						doubletap : this.onDoubleTap,
 						touchmove : this.onTouchMove,
-						// touchstart : this.onTouchStart,
+						touchstart : this.onTouchStart,
 						touchend : this.onTouchEnd,
 						mousewheel : this.onMouseWheel,
 						// mousedown : function(e) {
@@ -188,17 +188,17 @@
 						pinchend : this.onPinchEnd,
 						scope : this
 					});
-					console.log("dom",this.canvas.getEl().dom);
-					var me = this
-					this.canvas.getEl().dom.addEventListener("mousedown", function(e) {
-						console.log("this is my touch, e", e);
-						me.onTouchStart(e);
-					});
+					// console.log("dom",this.canvas.getEl().dom);
+					// var me = this
+					// this.canvas.getEl().dom.addEventListener("mousedown", function(e) {
+						// console.log("this is my touch, e", e);
+						// me.onTouchStart(e);
+					// });
 
 					//this.init Menu Handlers;
 					//run button
-					console.log("button", this.bottomBar.getComponent(0).getComponent(3))
-					console.log("ele", this.bottomBar.getComponent(0).getComponent(3).getEl())
+					// console.log("button", this.bottomBar.getComponent(0).getComponent(3))
+					// console.log("ele", this.bottomBar.getComponent(0).getComponent(3).getEl())
 					this.bottomBar.getComponent(0).getComponent(3).setHandler(function() {
 						this.reanalyze();
 					}, this);

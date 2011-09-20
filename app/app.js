@@ -49,7 +49,7 @@
 
 						viewPortScale : 1.0,
 						maxViewPortScale : 20.0,
-						minViewPortScale : 0.1,
+						minViewPortScale : 0.2,
 						viewPortShiftX : 0.0,
 						viewPortShiftY : 0.0,
 
@@ -475,12 +475,18 @@
 					}), second = this.getCanvasCoordFromPage({
 						X : e.touches[1].pageX,
 						Y : e.touches[1].pageY
-					}), s = e.scale;
+					}), s = e.scale, S = this.settings;
 					this.pinchCenter1 = {
 						X : 0.5 * (first.X + second.X),
 						Y : 0.5 * (first.Y + second.Y)
 					};
-					this.deltaTransform(s, this.pinchCenter1.X - this.pinchCenter0.X * s, this.pinchCenter1.Y - this.pinchCenter0.Y * s);
+					if (S.viewPortScale * s < S.maxViewPortScale && S.viewPortScale * s > S.minViewPortScale){
+						this.deltaTransform(s, this.pinchCenter1.X - this.pinchCenter0.X * s, this.pinchCenter1.Y - this.pinchCenter0.Y * s);
+					} else if (S.viewPortScale * s >= S.maxViewPortScale){
+						alert("max scale reached");
+					} else{
+						alert("min scale reached");
+					}
 				},
 				onMouseWheel : function(event) {
 					// console.log("event",event)
@@ -491,9 +497,17 @@
 						X : e.pageX,
 						Y : e.pageY
 					});
-					S.viewPortShiftX = S.viewPortScale * P.X * (1 - s) + S.viewPortShiftX;
-					S.viewPortShiftY = S.viewPortScale * P.Y * (1 - s) + S.viewPortShiftY;
-					S.viewPortScale = S.viewPortScale * s;
+					
+					if (S.viewPortScale * s < S.maxViewPortScale && S.viewPortScale * s > S.minViewPortScale){
+						S.viewPortShiftX = S.viewPortScale * P.X * (1 - s) + S.viewPortShiftX;
+						S.viewPortShiftY = S.viewPortScale * P.Y * (1 - s) + S.viewPortShiftY;
+						S.viewPortScale = S.viewPortScale * s;
+					} else if (S.viewPortScale * s >= S.maxViewPortScale){
+						alert("max scale reached");
+					} else{
+						alert("min scale reached");
+					}
+					
 					this.refresh();
 				},
 				onPinchEnd : function() {

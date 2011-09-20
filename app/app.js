@@ -3,19 +3,11 @@
 	Ext.regApplication({
 		name : "sketchit",
 		glossOnIcon : false,
-
-		/**
-		 * This is called automatically when the page loads. Here we set up the main component on the page - the Viewport
-		 */
 		launch : function() {
 
 			sketchit.controllers.main = Ext.regController("main", {
 				initAll : function(options) {
-					//set options
-					//this.setOptions(options);
-
 					//init views
-					console.log("in app.js")
 					this.mainView = new sketchitMainView({
 						listeners : {
 							afterrender : function() {
@@ -26,15 +18,6 @@
 							}
 						}
 					})
-					// this.mainView = this.render({
-					// xtype : 'sketchitMain'
-					// }, Ext.getBody());
-					//
-					// this.canvas = this.mainView.getComponent(0);
-					//
-					// this.topBar = this.mainView.getDockedItems()[0];
-					//
-					// this.bottomBar = this.mainView.getDockedItems()[1];
 
 					//init model Domain
 					this.Domain = new $D.Domain();
@@ -45,13 +28,11 @@
 					window.Renderer = this.Renderer;
 
 					this.settings = {};
-					Ext.apply(this.settings, {
+					$D.apply(this.settings, {
 						mode : 'draw',
 						touchMoveAnimation : false,
 						touchMoveFps : 10,
-						// zoomPanAnimation : false,
-						// zoomPanFps : 100,
-						// analysisMode : "auto", //auto or manual
+
 						autoAnalysis : true,
 						showMessage : true,
 						messageBoxPositionX : 10,
@@ -67,6 +48,8 @@
 						mouseWheelSpeedBase : 1000, //fixed
 
 						viewPortScale : 1.0,
+						maxViewPortScale : 20.0,
+						minViewPortScale : 0.1,
 						viewPortShiftX : 0.0,
 						viewPortShiftY : 0.0,
 
@@ -101,8 +84,8 @@
 
 						circleSnapToSPCThreshold : 25,
 
-						LoadSnapToNodeThreshold : 15,
-						LoadSnapToLineThreshold : 5,
+						loadSnapToNodeThreshold : 15,
+						loadSnapToLineThreshold : 15,
 
 						autoMergeNodeOnLine : true,
 						autoMergeNodeOnLineThreshold : 1,
@@ -129,76 +112,35 @@
 
 					})
 
-					//this.settings.defaultGeomTransf = Domain.theGeomTransfs[2];
-
-					this.onOrientationchange.call(this);
-
-					//init input stroke array
 					this.inputStrokes = [];
-
-					//init shape recognizer
+					this.logs = [],
 					this.shapeRecognizer = new DollarRecognizer();
-
-					//init command recognizer
-					//this.commandGen = {};
-
-					//init event handlers
 					this.initHandlers();
-
-					//init canvas transform
-
-					//this.Renderer.initTransform();
-
-					// first render
+					this.setCanvasPosition(0, this.topBar.getHeight(), this.mainView.getWidth(), this.mainView.getHeight() - this.topBar.getHeight() - this.bottomBar.getHeight());
+					this.resetViewPort();
 					this.refresh();
 				},
 				initHandlers : function() {
-
-					//init main view event
-					// document.addEventListener("DOMMouseScroll",function(){
-					// alert("mouse wheel")
-					// })
-					// document.addEventListener("mousewheel",function(e){
-					// console.log("e",e)
-					// })
-
 					this.mainView.on({
 						orientationchange : this.onOrientationchange,
-
 						scope : this
 					})
 
 					// init canvas handlers
-
 					this.canvas.mon(this.canvas.el, {
 						doubletap : this.onDoubleTap,
 						touchmove : this.onTouchMove,
 						touchstart : this.onTouchStart,
 						touchend : this.onTouchEnd,
 						mousewheel : this.onMouseWheel,
-						// mousedown : function(e) {
-						// console.log("mouse down")
-						// console.log(e)
-						//
-						// },
-						// mousemove : this.onMouseMove,
-						//tapcancel: function(){alert("touch cancle")},
 						pinchstart : this.onPinchStart,
 						pinch : this.onPinch,
 						pinchend : this.onPinchEnd,
 						scope : this
 					});
-					// console.log("dom",this.canvas.getEl().dom);
-					// var me = this
-					// this.canvas.getEl().dom.addEventListener("mousedown", function(e) {
-						// console.log("this is my touch, e", e);
-						// me.onTouchStart(e);
-					// });
 
 					//this.init Menu Handlers;
 					//run button
-					// console.log("button", this.bottomBar.getComponent(0).getComponent(3))
-					// console.log("ele", this.bottomBar.getComponent(0).getComponent(3).getEl())
 					this.bottomBar.getComponent(0).getComponent(3).setHandler(function() {
 						this.reanalyze();
 					}, this);
@@ -217,7 +159,6 @@
 					//moment button
 					this.topBar.getComponent(0).getComponent(5).setHandler(function() {
 						this.settings.showMoment = !this.settings.showMoment;
-						// this.refresh();
 						this.reanalyze(function() {
 							this.refresh();
 						})
@@ -230,7 +171,6 @@
 								this.refresh();
 							})
 						}
-						//this.refresh();
 					}, this);
 					//clear button
 					this.bottomBar.getComponent(2).setHandler(this.clearAll, this);
@@ -263,7 +203,7 @@
 					this.bottomBar.getComponent(6).setHandler(this.redo, this);
 					this.bottomBar.getComponent(6).setDisabled(true);
 					//save button
-					this.bottomBar.getComponent(7).setHandler(this.save, this);
+					this.bottomBar.getComponent(7).setHandler(this.saveScript, this);
 
 					//mode toggle button
 					this.bottomBar.getComponent(11).on({
@@ -274,15 +214,6 @@
 					});
 
 				},
-				canvasUpLeftX : undefined,
-				canvasUpLeftY : undefined,
-				canvasHeight : undefined,
-				canvasWidth : undefined,
-
-				mouseX : undefined,
-				mouseY : undefined,
-				logs : [],
-
 				getCanvasCoordFromViewPort : function(p) {
 					return {
 						X : (p.X - this.settings.viewPortShiftX) / this.settings.viewPortScale,
@@ -307,22 +238,43 @@
 						Y : (this.canvasHeight - p.Y + this.canvasUpleftY - this.settings.viewPortShiftY) / this.settings.viewPortScale
 					}
 				},
-				resetCanvasPosition : function(width, height, upleftX, upleftY) {
-					this.canvasWidth = width || this.mainView.getWidth();
-					this.canvasHeight = height || this.mainView.getHeight() - this.topBar.getHeight() - this.bottomBar.getHeight();
-					this.canvasUpLeftX = upleftX || 0;
-					this.canvasUpleftY = upleftY || this.topBar.getHeight();
+				setCanvasPosition : function(upleftX, upleftY, width, height) {
+					this.canvasUpLeftX = upleftX;
+					this.canvasUpleftY = upleftY;
+					this.canvasWidth = width;
+					this.canvasHeight = height;
 				},
-				initCanvasTransform : function() {
+				initCT : function() {
 					this.Renderer.setTransform(1.0, 0, 0, -1.0, 0, this.canvasHeight);
 				},
-				applydeltaTransform : function() {
+				applyViewPortTransform : function() {
 					this.Renderer.transform(this.settings.viewPortScale, 0, 0, this.settings.viewPortScale, this.settings.viewPortShiftX, this.settings.viewPortShiftY);
 				},
-				resetViewPort : function(scale, shiftX, shiftY) {
-					this.settings.viewPortScale = scale || 1.0;
-					this.settings.viewPortShiftX = shiftX || 0.0;
-					this.settings.viewPortShiftY = shiftY || 0.0;
+				resetViewPort : function() {
+					this.settings.viewPortScale = 1.0;
+					this.settings.viewPortShiftX = 0.0;
+					this.settings.viewPortShiftY = 0.0;
+				},
+				deltaTransform : function(dScale, dShiftX, dShiftY) {
+					var R = this.Renderer;
+					R.save();
+					R.transform(dScale, 0, 0, dScale, dShiftX, dShiftY);
+					this.deltaScale = dScale;
+					this.deltaShiftX = dShiftX;
+					this.deltaShiftY = dShiftY;
+					this.clearScreen();
+					R.save();
+					this.initCT();
+					this.drawMessage();
+					R.restore();
+					this.drawDomain();
+					R.restore();
+				},
+				recordDeltaTransform : function() {
+					var S = this.settings;
+					S.viewPortShiftX = S.viewPortScale * this.deltaShiftX + S.viewPortShiftX;
+					S.viewPortShiftY = S.viewPortScale * this.deltaShiftY + S.viewPortShiftY;
+					S.viewPortScale = S.viewPortScale * this.deltaScale;
 				},
 				applyInputStrokeStyle : function(scale) {
 					var R = this.Renderer, S = this.settings;
@@ -346,7 +298,7 @@
 				clearScreen : function() {
 					var R = this.Renderer;
 					R.save();
-					this.initCanvasTransform();
+					this.initCT();
 					R.fillStyle = this.settings.canvasBgColor;
 					R.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
 					R.restore();
@@ -408,17 +360,13 @@
 				},
 				refresh : function() {
 					this.clearScreen();
-					this.initCanvasTransform();
+					this.initCT();
 					this.drawMessage();
-					this.applydeltaTransform();
+					this.applyViewPortTransform();
 					this.drawDomain();
 				},
-				save : function() {
-					alert(this.Domain.runStaticConstant(this.settings.modelScale, this.settings.loadScale));
-
-				},
 				onOrientationchange : function() {
-					this.resetCanvasPosition();
+					this.setCanvasPosition(0, this.topBar.getHeight(), this.mainView.getWidth(), this.mainView.getHeight() - this.topBar.getHeight() - this.bottomBar.getHeight());
 					this.resetViewPort();
 					this.refresh();
 				},
@@ -435,9 +383,7 @@
 					}, dt, this);
 				},
 				onTouchStart : function(e, el, obj) {
-					// this.logs.push("start!\nnextline");
-					// console.log("touch start!")
-					// console.log("type: " + e.event.type);
+					// console.log("touch start!",e)
 					var P = this.getCanvasCoordFromPage({
 						X : e.touches[0].pageX,
 						Y : e.touches[0].pageY
@@ -448,8 +394,6 @@
 					this.touchStartY = P.Y;
 					this.shiftKey = e.event.shiftKey;
 					if(this.settings.mode === "move") {
-						// this.moveStartX = P.X;
-						// this.moveStartY = P.Y;
 						if((e.event.type === "mousedown" && e.event.button == 1) || e.event.shiftKey) {
 
 						} else {
@@ -467,170 +411,93 @@
 							}, 1000 / this.settings.touchMoveFps)
 
 						}
-
 					} else {
-
 						this.inputStrokes = [];
 						this.inputStrokes.push(P);
 					}
 				},
-				// onMouseMove : function(e) {
-				// if(e.browserEvent.shiftKey) {
-				// // var c1x = this.touchCurrentX, //
-				// // c1y = this.touchCurrentY, //
-				// // c0x = this.touchStartX, //
-				// // c0y = this.touchStartY;
-				// // this.deltaTransform(1, c1x - c0x, c1y - c0y);
-				// this.deltaTransform(1, this.touchCurrentX - this.touchStartX, this.touchCurrentY - this.touchStartY);
-				// }
-				//
-				// },
 				onTouchMove : function(e, el, obj) {
-					// console.log("move: ", e)
 					var P = this.getCanvasCoordFromPage({
 						X : e.touches[0].pageX,
 						Y : e.touches[0].pageY
 					});
-
-					// var nowX, nowY, i, loop;
-					// nowX = parseInt(e.touches[0].pageX);
-					// nowY = parseInt(e.touches[0].pageY);
-					if(this.settings.mode === "move" && this.settings.touchMoveAnimation === true && e.event.button == 0 && !e.event.shiftKey) {
-						this.Domain["moveSelectedNodes"]({
-							"dx" : P.X - this.touchCurrentX,
-							"dy" : P.Y - this.touchCurrentY
-						});
+					if(e.event.type === "mousemove" && (e.event.button == 1 || e.event.shiftKey)) {
+						this.deltaTransform(1, P.X - this.touchStartX, P.Y - this.touchStartY);
 					} else {
-						if((e.event.type === "mousemove" && e.event.button == 1) || (e.event.type === "mousemove" && e.event.shiftKey)) {
-							// scale = S.viewPortScale;
-							// shiftX = S.viewPortScale * P.X*(1-s) + S.viewPortShiftX;
-							// shiftY = S.viewPortScale * P.Y*(1-s) + S.viewPortShiftY;
-
-							// var c1x = this.touchCurrentX, //
-							// c1y = this.touchCurrentY, //
-							// c0x = this.touchStartX, //
-							// c0y = this.touchStartY;
-							//
-							//s = e.scale;
-							this.deltaTransform(1, this.touchCurrentX - this.touchStartX, this.touchCurrentY - this.touchStartY);
-
-							//this.resetViewPort(S.viewPortScale, P.X - this.mouseX, P.Y - this.mouseY);
-							//this.refresh();
-
+						if(this.settings.mode === "move" && this.settings.touchMoveAnimation === true) {
+							this.Domain["moveSelectedNodes"]({
+								"dx" : P.X - this.touchCurrentX,
+								"dy" : P.Y - this.touchCurrentY
+							});
 						} else {
-							var l;
 							this.inputStrokes.push(P);
-							l = this.inputStrokes.length;
+							var l = this.inputStrokes.length;
 							this.applyInputStrokeStyle(this.settings.viewPortScale);
 							this.Renderer.drawLine(this.inputStrokes[l - 2], this.inputStrokes[l - 1]);
 						}
-
 					}
-					// this.shiftKey = e.event.shiftKey;
 					this.touchCurrentX = P.X;
 					this.touchCurrentY = P.Y;
-					// this.mouseX = P.X;
-					// this.mouseY = P.Y;
-
 				},
 				onTouchEnd : function(e, el, obj) {
 					if(this.settings.mode === "move") {
 						this.settings.touchMoveAnimation = false;
 					}
 					if((e.event.type === "mouseup" && e.event.button == 1) || (e.event.type === "mouseup" && this.shiftKey)) {
-						console.log("pinch end")
-						this.onPinchEnd();
+						this.recordDeltaTransform();
+						this.refresh();
 					} else if(e.touches.length === 0 || e.touches.length === 1) {
-						//var result = this.shapeRecognizer.Recognize(this.inputStrokes, false);
-						// this.act(result, this.settings)
 						this.oneStrokeHandler();
-						//this.refresh();
 					}
 					this.inputStrokes = [];
 					this.shiftKey = e.event.shiftKey;
-
 				},
 				onPinchStart : function(e, el, obj) {
-					var R = this.Renderer, first = this.getCanvasCoordFromPage({
+					var first = this.getCanvasCoordFromPage({
 						X : e.touches[0].pageX,
 						Y : e.touches[0].pageY
 					}), second = this.getCanvasCoordFromPage({
 						X : e.touches[1].pageX,
 						Y : e.touches[1].pageY
-					}), S = this.settings;
+					});
 					this.pinchCenter0 = {
 						X : 0.5 * (first.X + second.X),
 						Y : 0.5 * (first.Y + second.Y)
 					};
 				},
 				onPinch : function(e, el, obj) {
-					if(!Ext.isDefined(e.touches[0]) || !Ext.isDefined(e.touches[1])) {
+					if(!$D.isDefined(e.touches[0]) || !$D.isDefined(e.touches[1])) {
 						return;
 					}
 					var first = this.getCanvasCoordFromPage({
 						X : e.touches[0].pageX,
 						Y : e.touches[0].pageY
-					}), //
-					second = this.getCanvasCoordFromPage({
+					}), second = this.getCanvasCoordFromPage({
 						X : e.touches[1].pageX,
 						Y : e.touches[1].pageY
-					});
+					}), s = e.scale;
 					this.pinchCenter1 = {
 						X : 0.5 * (first.X + second.X),
 						Y : 0.5 * (first.Y + second.Y)
 					};
-					var c1x = this.pinchCenter1.X, //
-					c1y = this.pinchCenter1.Y, //
-					c0x = this.pinchCenter0.X, //
-					c0y = this.pinchCenter0.Y, //
-					s = e.scale;
-					this.deltaTransform(s, c1x - c0x * s, c1y - c0y * s);
+					this.deltaTransform(s, this.pinchCenter1.X - this.pinchCenter0.X * s, this.pinchCenter1.Y - this.pinchCenter0.Y * s);
 				},
 				onMouseWheel : function(event) {
-					// console.log("event")
-					// console.log(event)
+					// console.log("event",event)
 					var e = event.browserEvent, //
 					S = this.settings, //
-					R = this.Renderer, //
-					s = Math.pow(Math.E, e.wheelDelta * S.mouseWheelSpeedFactor / S.mouseWheelSpeedBase);
-					var P = this.getCanvasCoordFromPage({
+					s = Math.pow(Math.E, e.wheelDelta * S.mouseWheelSpeedFactor / S.mouseWheelSpeedBase), //
+					P = this.getCanvasCoordFromPage({
 						X : e.pageX,
 						Y : e.pageY
 					});
-					// this.deltaTransform(s,P.X*(1-s),P.Y*(1-s));
-					// var R = this.Renderer;
-					// R.save();
-					// R.transform(dScale, 0, 0, dScale, dShiftX, dShiftY);
-					// this.deltaScale = dScale;
-					// this.deltaShiftX = dShiftX;
-					// this.deltaShiftY = dShiftY;
-					// this.clearScreen();
-					// this.drawDomain();
-					// R.restore();
-
-					scale = S.viewPortScale * s;
-					shiftX = S.viewPortScale * P.X * (1 - s) + S.viewPortShiftX;
-					shiftY = S.viewPortScale * P.Y * (1 - s) + S.viewPortShiftY;
-					this.resetViewPort(scale, shiftX, shiftY);
+					S.viewPortShiftX = S.viewPortScale * P.X * (1 - s) + S.viewPortShiftX;
+					S.viewPortShiftY = S.viewPortScale * P.Y * (1 - s) + S.viewPortShiftY;
+					S.viewPortScale = S.viewPortScale * s;
 					this.refresh();
 				},
-				deltaTransform : function(dScale, dShiftX, dShiftY) {
-					var R = this.Renderer;
-					R.save();
-					R.transform(dScale, 0, 0, dScale, dShiftX, dShiftY);
-					this.deltaScale = dScale;
-					this.deltaShiftX = dShiftX;
-					this.deltaShiftY = dShiftY;
-					this.clearScreen();
-					this.drawDomain();
-					R.restore();
-				},
 				onPinchEnd : function() {
-					var S = this.settings;
-					scale = S.viewPortScale * this.deltaScale;
-					shiftX = S.viewPortScale * this.deltaShiftX + S.viewPortShiftX;
-					shiftY = S.viewPortScale * this.deltaShiftY + S.viewPortShiftY;
-					this.resetViewPort(scale, shiftX, shiftY);
+					this.recordDeltaTransform();
 					this.refresh();
 				},
 				clearAll : function() {
@@ -669,20 +536,20 @@
 						this.refresh();
 					}
 				},
+				saveScript : function() {
+					alert(this.Domain.runStaticConstant(this.settings.modelScale, this.settings.loadScale));
+				},
 				reanalyze : function(fn) {
 					var args = Array.prototype.slice.call(arguments, 1), flag = false;
-					if(this.Domain.isReadyToRun() /*&& this.Domain.changed*/) {
+					if(this.Domain.isReadyToRun()) {
 						if(this.settings.showMoment || this.settings.showDeformation) {
 							$D.ajaxPost({
 								url : "/cgi-bin/lge/sketchit-server/test/sketchit.ops",
 								scope : this,
 								data : this.Domain.runStaticConstant(this.settings.showDeformation, this.settings.showMoment),
 								success : function(result) {
-									// console.log("this", this)
 									this.Domain.loadResultData(result.responseText);
 									this.Domain.set("deformationAvailable", true);
-									// this.Domain.commit();
-									// this.Domain.deformationAvailable = true;
 									if(this.settings.autoDeformationScale) {
 										var ascale = this.getAutoDeformationScale(this.settings.maxDeformationOnScreen)
 										if(isFinite(ascale)) {
@@ -700,77 +567,17 @@
 									if($D.isDefined(fn)) {
 										fn.apply(this, args);
 									}
-
-									// this.refresh();
 								},
 							});
 							flag = true;
-						}// else {
-						// this.refresh();
-						// }
+						}
 					} else {
-						// this.Domain.deformationAvailable = false;
 						this.Domain.set("deformationAvailable", false);
-						// this.Domain.resetResultData();
-						// this.refresh();
-
 					}
 					if($D.isDefined(fn) && !flag) {
 						fn.apply(this, args);
 					}
 				},
-				// act : function(recognizeResult, settings) {
-				// if(settings.mode === "draw" || settings.mode === "load") {
-				// var obj, args, undo;
-				// obj = this.vocabulary[settings.mode][recognizeResult.name];
-				// console.log("obj: ", obj, " recognize result ", recognizeResult);
-				// if(Ext.isFunction(obj)) {
-				// obj = obj.call(this);
-				// }
-				//
-				// if(Ext.isDefined(obj) && Ext.isObject(obj)) {
-				// args = obj.argsGen.call(this, recognizeResult.data, settings);
-				// undo = obj.undo;
-				// this.Domain[obj.command](args);
-				// if(undo) {
-				// this.Domain.commit();
-				// this.bottomBar.getComponent(5).setDisabled(false);
-				// this.bottomBar.getComponent(6).setDisabled(true);
-				// } else {
-				// this.Domain.discard();
-				// }
-				// // alert("is ready to run? "+this.Domain.isReadyToRun());
-				// if(this.settings.autoAnalysis) {
-				// // if(this.settings.analysisMode === "auto") {
-				// this.reanalyze();
-				// } else {
-				// this.refresh();
-				// }
-				// return true;
-				// } else {
-				// console.log("do nothing")
-				// }
-				// } else if(settings.mode === "select") {
-				// if($D.distance(recognizeResult.data.from, recognizeResult.data.to) < settings.circleSelectThreshold) {
-				// this.Domain["circleSelect"]({
-				// "poly" : recognizeResult.data.ResamplePoints
-				// });
-				// } else {
-				//
-				// }
-				// this.Domain.commit();
-				// this.bottomBar.getComponent(5).setDisabled(false);
-				// this.bottomBar.getComponent(6).setDisabled(true);
-				// return true;
-				//
-				// } else if(settings.mode === "move") {
-				//
-				// }
-				//
-				// console.log("do nothing")
-				// return false;
-				// },
-
 				oneStrokeHandler : function() {
 					var undo = true, changed = false, msg = "", S = this.settings, action;
 					switch (this.settings.mode) {
@@ -779,20 +586,15 @@
 						case "load":
 							var recognizeResult = this.shapeRecognizer.Recognize(this.inputStrokes, false), //
 							obj = this.oneStrokeVocabulary[this.settings.mode][recognizeResult.name];
-							if(Ext.isDefined(obj)) {
-								//this.logs.push("")
+							if($D.isDefined(obj)) {
 								console.log("obj: ", obj, " recognize result ", recognizeResult);
-								// msg = "mode: " + S.mode + "; shape: " + recognizeResult.name + "; actioin:" + action + " ;undoable:"+undo;
-								if(Ext.isFunction(obj)) {
+								if($D.isFunction(obj)) {
 									obj = obj.call(this);
 								}
-								if(Ext.isObject(obj)) {
+								if($D.isObject(obj)) {
 									undo = obj.undo;
 									action = obj.command;
 									changed = this.Domain[action](obj.argsGen.call(this, recognizeResult.data));
-									// msg = "mode: " + S.mode + "; shape: " + recognizeResult.name + "; actioin:" + action + " ;undoable:"+undo;
-									// msg = "mode: " + S.mode + "; shape: " + recognizeResult.name + "; actioin:"//
-									// + obj.command + "; success: " + changed + "; undoable:" + undo;
 								} else {
 									undo = "NA";
 									action = "no found";
@@ -810,13 +612,7 @@
 									"curve" : recognizeResult.data.ResamplePoints
 								});
 							} else {
-								if(l < this.settings.clickSelectThreshold) {
-									// action = "clickSelect";
-									// changed = this.Domain["clickSelect"]({
-									// "X" : recognizeResult.data.from.X,
-									// "Y" : recognizeResult.data.from.Y
-									// });
-								} else {
+								if(l >= this.settings.clickSelectThreshold) {
 									action = "circleSelect";
 									changed = this.Domain["circleSelect"]({
 										"poly" : recognizeResult.data.ResamplePoints
@@ -827,8 +623,6 @@
 							msg = "mode: " + S.mode + "; shape: " + recognizeResult.name + "; actioin:" + action + " ;undoable:" + undo;
 							break;
 						case "move":
-							// this.touchCurrentX = P.X;
-							// this.touchCurrentY = P.Y;
 							changed = this.Domain["jumpMoveSelectedNodes"]({
 								"dx" : this.touchCurrentX - this.touchStartX,
 								"dy" : this.touchCurrentY - this.touchStartY,
@@ -851,7 +645,6 @@
 						return;
 					}
 
-					// alert("is ready to run? "+this.Domain.isReadyToRun());
 					var inlineProc = function() {
 						if(undo) {
 							this.Domain.commit();
@@ -865,7 +658,6 @@
 						this.refresh();
 					};
 					if(this.settings.autoAnalysis) {
-						// if(this.settings.analysisMode === "auto") {
 						this.reanalyze(inlineProc);
 					} else {
 						inlineProc.call(this);
@@ -964,8 +756,8 @@
 								result.y1 = data.from.Y;
 								result.x2 = data.to.X;
 								result.y2 = data.to.Y;
-								result.nT = settings.LoadSnapToNodeThreshold;
-								result.lT = settings.LoadSnapToLineThreshold;
+								result.nT = settings.loadSnapToNodeThreshold;
+								result.lT = settings.loadSnapToLineThreshold;
 								result.nLoadType = settings.defaultNodeLoadType;
 								if(settings.snapToGrid) {
 									result.grid = settings.grid;

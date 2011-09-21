@@ -70,7 +70,7 @@
 
 						snapToLine : true,
 						snapToLineThreshold : 25,
-
+						
 						snapToGrid : true,
 						grid : 20,
 						gridLineWidth : 1,
@@ -82,6 +82,9 @@
 						SPCSnapToNode : true,
 						SPCSnapToNodeThreshold : 15,
 
+						SPCSnapToLine : true,
+						SPCSnapToLineThreshold : 15,
+						
 						circleSnapToSPCThreshold : 25,
 
 						loadSnapToNodeThreshold : 15,
@@ -721,6 +724,9 @@
 								}
 								if(settings.SPCSnapToNode) {
 									result.nT = settings.SPCSnapToNodeThreshold;
+								}
+								if(settings.SPCSnapToLine) {
+									result.lT = settings.SPCSnapToLineThreshold;
 								}
 								if(settings.snapToGrid) {
 									result.grid = settings.grid;

@@ -604,7 +604,8 @@
 						case "draw":
 						case "load":
 							var recognizeResult = this.shapeRecognizer.Recognize(this.inputStrokes, false), //
-							obj = this.oneStrokeVocabulary[this.settings.mode][recognizeResult.name];
+							obj = this.oneStrokeVocabulary[this.settings.mode][recognizeResult.name], //
+							batchStart = this.Domain._head+1;
 							if($D.isDefined(obj)) {
 								console.log("obj: ", obj, " recognize result ", recognizeResult);
 								if($D.isFunction(obj)) {
@@ -668,6 +669,7 @@
 					var inlineProc = function() {
 						if(undo) {
 							this.Domain.commit();
+							this.Domain.group(batchStart,this.Domain._head);
 							this.bottomBar.getComponent(5).setDisabled(false);
 							this.bottomBar.getComponent(6).setDisabled(true);
 						} else {
@@ -685,7 +687,7 @@
 				},
 				commands:{
 					addALineElement:function(data){
-						var dm = this.Domain, S = this.settings,
+						var dm = this.Domain, S = this.settings, //
 						n1 = dm.createNode(data.from.X,data.from.Y),
 						n2 = dm.createNode(data.to.X,data.to.Y);
 						dm.createLineElement(S.defaultLineELementType,n1,n2,{
@@ -700,13 +702,34 @@
 								dm.mergeNodes(n2,np2.node);
 							}
 						}
-						
-						
-						
 						return true;
-						
-						
 					},
+					addASPC:function(data){
+						var result = {}, settings = this.settings;
+						result.topX = data.from.X;
+						result.topY = data.from.Y;
+						result.angle = data.IndicativeAngle;
+						result.show = settings.showSPC;
+
+						if(settings.SPCSnapToDirection) {
+							result.dT = settings.SPCSnapToDirectionThreshold;
+						}
+						if(settings.SPCSnapToNode) {
+							result.nT = settings.SPCSnapToNodeThreshold;
+						}
+						if(settings.SPCSnapToLine) {
+							result.lT = settings.SPCSnapToLineThreshold;
+						}
+						if(settings.snapToGrid) {
+							result.grid = settings.grid;
+						}
+						return result;
+						
+						
+						
+						
+					}
+					
 					
 					
 				},
@@ -743,7 +766,6 @@
 							command : "addASPC",
 							argsGen : function(data) {
 								var result = {}, settings = this.settings;
-								;
 								result.topX = data.from.X;
 								result.topY = data.from.Y;
 								result.angle = data.IndicativeAngle;

@@ -103,8 +103,10 @@
 						inputStrokeStyle : "rgb(0,0,255)",
 						inputStrokeWidth : 2,
 
-						defaultLineELementType : DirectFEA.ElasticBeamColumn,
+						// defaultLineELementType : DirectFEA.ElasticBeamColumn,
+						defaultLineELementType : "ElasticBeamColumn",
 						defaultGeomTransf : Domain.theGeomTransfs[2],
+						defaultGeomTransfId : 2,
 						defaultNodeLoadType : "load",
 
 						UniformElementLoadDirectionThreshold : 0.3,
@@ -611,7 +613,8 @@
 								if($D.isObject(obj)) {
 									undo = obj.undo;
 									action = obj.command;
-									changed = this.Domain[action](obj.argsGen.call(this, recognizeResult.data));
+									// changed = this.Domain[action](obj.argsGen.call(this, recognizeResult.data));
+									changed = this.commands[action].call(this, recognizeResult.data);
 								} else {
 									undo = "NA";
 									action = "no found";
@@ -679,6 +682,33 @@
 					} else {
 						inlineProc.call(this);
 					}
+				},
+				commands:{
+					addALineElement:function(data){
+						var dm = this.Domain, S = this.settings,
+						n1 = dm.createNode(data.from.X,data.from.Y),
+						n2 = dm.createNode(data.to.X,data.to.Y);
+						dm.createLineElement(S.defaultLineELementType,n1,n2,{
+							geomTransf : dm.theGeomTransfs[S.defaultGeomTransfId]
+						});
+						if (S.snapToNode){
+							var np1 = dm.snapToNode(n1,S.snapToNodeThreshold),np2 = dm.snapToNode(n2,S.snapToNodeThreshold);
+							if (np1.capture){
+								dm.mergeNodes(n1,np1.node);
+							}
+							if (np2.capture){
+								dm.mergeNodes(n2,np2.node);
+							}
+						}
+						
+						
+						
+						return true;
+						
+						
+					},
+					
+					
 				},
 				oneStrokeVocabulary : {
 					"draw" : {

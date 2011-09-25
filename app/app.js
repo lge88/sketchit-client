@@ -168,6 +168,22 @@
 							this.refresh();
 						})
 					}, this);
+					
+					//snap to grid button
+					this.topBar.getComponent(0).getComponent(6).setHandler(function() {
+						this.settings.snapToGrid = !this.settings.snapToGrid;
+					}, this);
+					
+					//snap to node button
+					this.topBar.getComponent(0).getComponent(7).setHandler(function() {
+						this.settings.snapToNode = !this.settings.snapToNode;
+					}, this);
+					
+					//snap to line button
+					this.topBar.getComponent(0).getComponent(8).setHandler(function() {
+						this.settings.snapToLine = !this.settings.snapToLine;
+					}, this);
+					
 					//real time button
 					this.topBar.getComponent(0).getComponent(3).setHandler(function() {
 						this.settings.autoAnalysis = !this.settings.autoAnalysis;
@@ -177,29 +193,47 @@
 							})
 						}
 					}, this);
+					
 					//clear button
 					this.bottomBar.getComponent(2).setHandler(this.clearAll, this);
+					
 					//unselect all button
 					this.bottomBar.getComponent(3).setHandler(function() {
+						this.Domain.mark();
 						if(!this.Domain["unselectAll"]()) {
 							console.log("do nothing");
+							this.Domain.unmark();
+						} else {
+							this.Domain.group();
 						}
-						this.Domain.commit();
+						// this.Domain.commit();
 						this.refresh();
 					}, this);
+					
 					//delete button
 					this.bottomBar.getComponent(4).setHandler(function() {
+						this.Domain.mark();
 						if(!this.Domain["removeSelectedElement"]()) {
 							console.log("do nothing");
-						}
-						this.Domain.commit();
-						if(this.settings.autoAnalysis) {
-							this.reanalyze(function() {
-								this.refresh();
-							});
+							this.Domain.unmark();
 						} else {
-							this.refresh();
+							this.Domain.group();
+							if(this.settings.autoAnalysis) {
+								this.reanalyze(function() {
+									this.refresh();
+								});
+							} else {
+								this.refresh();
+							}
 						}
+						// this.Domain.commit();
+						// if(this.settings.autoAnalysis) {
+							// this.reanalyze(function() {
+								// this.refresh();
+							// });
+						// } else {
+							// this.refresh();
+						// }
 					}, this);
 					//undo button
 					this.bottomBar.getComponent(5).setHandler(this.undo, this);
@@ -452,7 +486,7 @@
 						this.recordDeltaTransform();
 						this.refresh();
 					} else if(e.touches.length === 0 || e.touches.length === 1) {
-						this.oneStrokeHandler();
+						this.handleUniStroke();
 					}
 					this.inputStrokes = [];
 					this.shiftKey = e.event.shiftKey;
@@ -520,9 +554,18 @@
 					this.refresh();
 				},
 				clearAll : function() {
-					this.Domain.wipeAll();
-					this.Domain.commit();
-					this.refresh();
+					var r = confirm("Restart the sketch: you can not undo this operation, are you sure?");
+					if (r === true){
+						this.Domain.restart();
+						this.bottomBar.getComponent(5).setDisabled(true);
+						this.bottomBar.getComponent(6).setDisabled(true);
+						this.refresh();
+					} 
+					// this.Domain.mark();
+					// this.Domain.wipeAll();
+					// // this.Domain.commit();
+					// this.Domain.group();
+					// this.refresh();
 				},
 				undo : function() {
 					this.Domain.undo();
@@ -568,7 +611,8 @@
 								data : this.Domain.runStaticConstant(this.settings.showDeformation, this.settings.showMoment),
 								success : function(result) {
 									this.Domain.loadResultData(result.responseText);
-									this.Domain.set("deformationAvailable", true);
+									// this.Domain.set("deformationAvailable", true);
+									this.Domain.deformationAvailable = true;
 									if(this.settings.autoDeformationScale) {
 										var ascale = this.getAutoDeformationScale(this.settings.maxDeformationOnScreen)
 										if(isFinite(ascale)) {
@@ -591,14 +635,16 @@
 							flag = true;
 						}
 					} else {
-						this.Domain.set("deformationAvailable", false);
+						// this.Domain.set("deformationAvailable", false);
+						this.Domain.deformationAvailable = false;
 					}
 					if($D.isDefined(fn) && !flag) {
 						fn.apply(this, args);
 					}
 				},
-				oneStrokeHandler : function() {
+				handleUniStroke : function() {
 					var undo = true, changed = false, msg = "", S = this.settings, action;
+					this.Domain.mark();
 					switch (this.settings.mode) {
 
 						case "draw":
@@ -606,6 +652,7 @@
 							var recognizeResult = this.shapeRecognizer.Recognize(this.inputStrokes, false), //
 							obj = this.oneStrokeVocabulary[this.settings.mode][recognizeResult.name], //
 							batchStart = this.Domain._head+1;
+							// this.Domain.mark();
 							if($D.isDefined(obj)) {
 								console.log("obj: ", obj, " recognize result ", recognizeResult);
 								if($D.isFunction(obj)) {
@@ -648,6 +695,15 @@
 								"dx" : this.touchCurrentX - this.touchStartX,
 								"dy" : this.touchCurrentY - this.touchStartY,
 							});
+							
+							// test merge
+							var np1 = this.Domain.snapToNode(this.Domain.selectedNodes[1],S.snapToNodeThreshold);
+							if (np1.capture){
+								this.Domain.mergeNodes(this.Domain.selectedNodes[1],np1.node);
+							}
+							
+							
+							
 							action = "moveSelectedComponent";
 							undo = true;
 							msg = "mode: " + S.mode + "; actioin:" + action + " ;undoable:" + undo;
@@ -661,6 +717,7 @@
 					if(!changed) {
 						console.log("do nothing");
 						msg += "; Domain is not changed";
+						this.Domain.unmark();
 						this.logs.push(msg);
 						this.refresh();
 						return;
@@ -668,12 +725,15 @@
 
 					var inlineProc = function() {
 						if(undo) {
-							this.Domain.commit();
-							this.Domain.group(batchStart,this.Domain._head);
+							
+							
+							// this.Domain.commit();
+							// this.Domain.group(batchStart,this.Domain._head);
+							this.Domain.group();
 							this.bottomBar.getComponent(5).setDisabled(false);
 							this.bottomBar.getComponent(6).setDisabled(true);
 						} else {
-							this.Domain.discard();
+							// this.Domain.discard();
 						}
 						msg += "; Domain is changed";
 						this.logs.push(msg);

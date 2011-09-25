@@ -32,6 +32,8 @@
 						mode : 'draw',
 						touchMoveAnimation : false,
 						touchMoveFps : 10,
+						snapAnimationFps:50,
+						snapAnimationElapse:1500,
 
 						autoAnalysis : true,
 						showMessage : true,
@@ -93,11 +95,12 @@
 						autoMergeNodeOnLine : true,
 						autoMergeNodeOnLineThreshold : 1,
 
-						showNodeId : false,
-						showElementId : false,
+						showNodeId : true,
+						showElementId : true,
 						showMarks : false,
 						showGrid : true,
 						showSPC : true,
+						showLineElementDirection:true,
 
 						canvasBgColor : "rgb(255,255,255)",
 						inputStrokeStyle : "rgb(0,0,255)",
@@ -145,15 +148,24 @@
 					});
 
 					//this.init Menu Handlers;
-					//run button
-					this.bottomBar.getComponent(0).getComponent(3).setHandler(function() {
-						this.reanalyze();
+					
+					//show node id button
+					this.topBar.getComponent(0).getComponent(1).setHandler(function() {
+						this.settings.showNodeId = !this.settings.showNodeId;
+						this.refresh();
 					}, this);
+					
 					//grid button
 					this.topBar.getComponent(0).getComponent(2).setHandler(function() {
 						this.settings.showGrid = !this.settings.showGrid;
 						this.refresh();
 					}, this);
+					
+					//run button
+					this.bottomBar.getComponent(0).getComponent(3).setHandler(function() {
+						this.reanalyze();
+					}, this);
+					
 					//deformation button
 					this.topBar.getComponent(0).getComponent(4).setHandler(function() {
 						this.settings.showDeformation = !this.settings.showDeformation;
@@ -182,6 +194,18 @@
 					//snap to line button
 					this.topBar.getComponent(0).getComponent(8).setHandler(function() {
 						this.settings.snapToLine = !this.settings.snapToLine;
+					}, this);
+					
+					//show element direction
+					this.topBar.getComponent(0).getComponent(9).setHandler(function() {
+						this.settings.showLineElementDirection = !this.settings.showLineElementDirection;
+						this.refresh();
+					}, this);
+					
+					//show show ElementId button
+					this.topBar.getComponent(0).getComponent(10).setHandler(function() {
+						this.settings.showElementId = !this.settings.showElementId;
+						this.refresh();
 					}, this);
 					
 					//real time button
@@ -343,11 +367,13 @@
 					R.restore();
 				},
 				drawObjectStore : function(store, fn) {
-					var i, args = Array.prototype.slice.call(arguments, 2);
-					store.each(function(e) {
-						e[fn].apply(e, args);
-					});
+					var iter = $D.iterate, //
+					args = Array.prototype.slice.call(arguments, 2);
+					iter(store,function(e){
+						e[fn].apply(e,args)
+					})
 				},
+				
 				drawMessage : function() {
 					var R = this.Renderer, //
 					S = this.settings, //
@@ -396,6 +422,15 @@
 					if(this.Domain.deformationAvailable && S.showMoment) {
 						draw(eles, "displayMoment", R, vps, S.momentScale, S.momentResolution);
 					}
+					if(S.showNodeId) {
+						draw(nodes, "displayTag", R, vps);
+					}
+					if(S.showElementId) {
+						draw(eles, "displayTag", R, vps);
+					}
+					if(S.showLineElementDirection) {
+						draw(eles, "displayDirection", R, vps);
+					}
 				},
 				refresh : function() {
 					this.clearScreen();
@@ -420,6 +455,14 @@
 							scope.animate(condition, fn, dt)
 						}
 					}, dt, this);
+				},
+				animate : function(condition, fn, dt) {
+					var id = setInterval(function(scope){
+						fn.call(scope);	
+						if(!condition.call(scope)) {
+							clearInterval(id);
+						}
+					},dt,this)
 				},
 				onTouchStart : function(e, el, obj) {
 					// console.log("touch start!",e)
@@ -447,7 +490,7 @@
 								} else {
 									this.refresh();
 								}
-							}, 1000 / this.settings.touchMoveFps)
+							}, 1000 / this.settings.touchMoveFps);
 
 						}
 					} else {
@@ -464,10 +507,7 @@
 						this.deltaTransform(1, P.X - this.touchStartX, P.Y - this.touchStartY);
 					} else {
 						if(this.settings.mode === "move" && this.settings.touchMoveAnimation === true) {
-							this.Domain["moveSelectedNodes"]({
-								"dx" : P.X - this.touchCurrentX,
-								"dy" : P.Y - this.touchCurrentY
-							});
+							this.Domain["moveSelectedNodes"](P.X - this.touchCurrentX,P.Y - this.touchCurrentY);
 						} else {
 							this.inputStrokes.push(P);
 							var l = this.inputStrokes.length;
@@ -650,8 +690,8 @@
 						case "draw":
 						case "load":
 							var recognizeResult = this.shapeRecognizer.Recognize(this.inputStrokes, false), //
-							obj = this.oneStrokeVocabulary[this.settings.mode][recognizeResult.name], //
-							batchStart = this.Domain._head+1;
+							obj = this.oneStrokeVocabulary[this.settings.mode][recognizeResult.name]; //
+							// batchStart = this.Domain._head+1;
 							// this.Domain.mark();
 							if($D.isDefined(obj)) {
 								console.log("obj: ", obj, " recognize result ", recognizeResult);
@@ -691,16 +731,16 @@
 							msg = "mode: " + S.mode + "; shape: " + recognizeResult.name + "; actioin:" + action + " ;undoable:" + undo;
 							break;
 						case "move":
-							changed = this.Domain["jumpMoveSelectedNodes"]({
-								"dx" : this.touchCurrentX - this.touchStartX,
-								"dy" : this.touchCurrentY - this.touchStartY,
-							});
+							changed = this.Domain["transitSelectedNodes"](this.touchCurrentX - this.touchStartX,this.touchCurrentY - this.touchStartY);
 							
 							// test merge
-							var np1 = this.Domain.snapToNode(this.Domain.selectedNodes[1],S.snapToNodeThreshold);
-							if (np1.capture){
-								this.Domain.mergeNodes(this.Domain.selectedNodes[1],np1.node);
+							if ($D.isDefined(this.Domain.selectedNodes[1])){
+								var np1 = this.Domain.snapToNode(this.Domain.selectedNodes[1],S.snapToNodeThreshold);
+								if (np1.capture){
+									this.Domain.mergeNodes(this.Domain.selectedNodes[1],np1.node);
+								}
 							}
+							
 							
 							
 							
@@ -721,7 +761,7 @@
 						this.logs.push(msg);
 						this.refresh();
 						return;
-					}
+					} 
 
 					var inlineProc = function() {
 						if(undo) {
@@ -739,31 +779,147 @@
 						this.logs.push(msg);
 						this.refresh();
 					};
+					
+					// if (this.animationQueue.length!=0){
+						// this.animate(condition, fn, dt)
+						// setInterval()
+					// }
 					if(this.settings.autoAnalysis) {
 						this.reanalyze(inlineProc);
 					} else {
 						inlineProc.call(this);
 					}
 				},
+				nodeSnapAnimate:function(nodesBefore,nodesAfter,fn){
+					var count = 0,dt = 1000 / this.settings.snapAnimationFps,dx=[],dy=[],it,i,len = nodesBefore.length;
+					max = this.settings.snapAnimationElapse * this.settings.snapAnimationFps / 1000;
+					for (i = 0;i<len;i++){
+						dx.push((nodesAfter[i].X - nodesBefore[i].X)/max);
+						dy.push((nodesAfter[i].Y - nodesBefore[i].Y)/max);
+					}
+					it = setInterval(function(scope){
+						for (i = 0;i<len;i++){
+							scope.Domain.moveNode(nodesBefore[i].id,dx[i],dy[i]);
+						}
+						scope.refresh()
+						count++;
+						if (count >= max){
+							clearInterval(it);
+							fn.call(scope)
+						}
+					},dt,this)
+				},
 				commands:{
 					addALineElement:function(data){
 						var dm = this.Domain, S = this.settings, //
-						n1 = dm.createNode(data.from.X,data.from.Y),
+						fx = data.from.X, fy = data.from.Y, tx = data.to.X, ty = data.to.Y, //
+						n1 = dm.createNode(data.from.X,data.from.Y), //
 						n2 = dm.createNode(data.to.X,data.to.Y);
-						dm.createLineElement(S.defaultLineELementType,n1,n2,{
+						e = dm.createLineElement(S.defaultLineELementType,n1,n2,{
 							geomTransf : dm.theGeomTransfs[S.defaultGeomTransfId]
 						});
+						// if (S.snapToNode){
+							// var np1 = dm.snapToNode(n1,S.snapToNodeThreshold),np2;
+							// if (np1.capture){
+								// if (n2.id == np1.nodeId){
+									// dm.removeLineElement(e);
+									// dm.removeNode(n1);
+									// dm.removeNode(n2);
+									// return false;
+								// }
+// 								
+// 								
+								// dm.mergeNodes(n1,np1.node);
+								// np2 = dm.snapToNode(n2,S.snapToNodeThreshold);
+								// if (np2.capture){
+									// dm.mergeNodes(n2,np2.node);
+									// if (np2.nodeId == np1.nodeId){
+										// return false;
+									// } else {
+										// return true;
+									// }
+								// } else {
+									// if (np1.nodeId == n2.id) {
+										// return false;
+									// }
+									// return true;
+								// }
+							// } else {
+								// np2 = dm.snapToNode(n2,S.snapToNodeThreshold);
+								// if (np2.capture){
+									// dm.mergeNodes(n2,np2.node);
+								// }
+								// return true;
+							// }
+						// }
 						if (S.snapToNode){
-							var np1 = dm.snapToNode(n1,S.snapToNodeThreshold),np2 = dm.snapToNode(n2,S.snapToNodeThreshold);
-							if (np1.capture){
+							var np1 = dm.snapToNode(n1,S.snapToNodeThreshold),np2=dm.snapToNode(n2,S.snapToNodeThreshold);
+							if (np1.capture && np2.capture){
+								if (np1.nodeId == n2.id || np2.nodeId == n1.id || np1.nodeId == np2.nodeId){
+									dm.removeLineElement(e);
+									dm.removeNode(n1);
+									dm.removeNode(n2);
+									return false;
+								} else {
+									dm.mergeNodes(n1,np1.node);
+									dm.mergeNodes(n2,np2.node);
+									// this.nodeSnapAnimate([n1,n2],[np1.node,np2.node],function(){
+										// n1.X = n1.beforeMoveX;
+										// n1.Y = n1.beforeMoveY;
+										// n2.X = n2.beforeMoveX;
+										// n2.Y = n2.beforeMoveY;
+										// dm.mergeNodes(n1,np1.node);
+										// dm.mergeNodes(n2,np1.node);
+									// })
+									return true;
+								}
+							} else if (np1.capture && !np2.capture){
 								dm.mergeNodes(n1,np1.node);
-							}
-							if (np2.capture){
+								// this.nodeSnapAnimate([n1],[np1.node],function(){
+									// n1.X = n1.beforeMoveX;
+									// n1.Y = n1.beforeMoveY;
+									// dm.mergeNodes(n1,np1.node);
+								// })
+								return true;
+								
+								
+							} else if (!np1.capture && np2.capture){
 								dm.mergeNodes(n2,np2.node);
-							}
+								// this.nodeSnapAnimate([n2],[np2.node],function(){
+									// n2.X = n2.beforeMoveX;
+									// n2.Y = n2.beforeMoveY;
+									// dm.mergeNodes(n2,np2.node);
+								// })
+								return true;
+							} 
+							return true;
 						}
-						return true;
+						
+						// if (S.snapToLine){
+							// var lp1, lp2;
+							// if (!np1.capture && !np2.capture){
+								// lp1 = dm.snapToLine(n1,S.snapToLineThreshold);
+								// lp2 = dm.snapToLine(n2,S.snapToLineThreshold);
+								// if (lp1.lineId === lp2.lineId){
+									// return false;
+								// } else {
+									// var nonl1 = dm.splitLineElement(lp1.line,lp1.ratio),nonl2 = dm.splitLineElement(lp2.line,lp2.ratio);
+									// dm.mergeNodes(n1,nonl1);
+									// dm.mergeNodes(n2,nonl2);
+									// return true;
+								// }
+							// } else if (!np1.capture && np2.capture) {
+								// lp2 = dm.snapToLine(n2,S.snapToLineThreshold);
+// 								
+							// } else if (np1.capture && !np2.capture) {
+// 								
+// 								
+							// }
+// 							
+						// }
+						// return false;
 					},
+					
 					addASPC:function(data){
 						var result = {}, settings = this.settings;
 						result.topX = data.from.X;

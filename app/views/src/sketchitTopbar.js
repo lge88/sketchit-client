@@ -25,7 +25,8 @@ sketchit.views.Topbar = Ext.extend(Ext.Toolbar, {
 					text: 'Size',
 					disabled:true
 				},{
-					text: 'NodeId'
+					text: 'NodeId',
+					pressed:true
 				},{
 					text: 'Grid',
 					pressed:true
@@ -48,11 +49,11 @@ sketchit.views.Topbar = Ext.extend(Ext.Toolbar, {
 					text: 'SnapToLine',
 					pressed:true
 				},{
-					text: 'AutoMesh',
-					pressed:false
+					text: 'ElementDirection',
+					pressed:true
 				},{
-					text: 'showMesh',
-					pressed:false
+					text: 'ElementId',
+					pressed:true
 				}
 				]
 			}]

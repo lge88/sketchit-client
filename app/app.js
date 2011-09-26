@@ -818,40 +818,6 @@
 						e = dm.createLineElement(S.defaultLineELementType,n1,n2,{
 							geomTransf : dm.theGeomTransfs[S.defaultGeomTransfId]
 						});
-						// if (S.snapToNode){
-							// var np1 = dm.snapToNode(n1,S.snapToNodeThreshold),np2;
-							// if (np1.capture){
-								// if (n2.id == np1.nodeId){
-									// dm.removeLineElement(e);
-									// dm.removeNode(n1);
-									// dm.removeNode(n2);
-									// return false;
-								// }
-// 								
-// 								
-								// dm.mergeNodes(n1,np1.node);
-								// np2 = dm.snapToNode(n2,S.snapToNodeThreshold);
-								// if (np2.capture){
-									// dm.mergeNodes(n2,np2.node);
-									// if (np2.nodeId == np1.nodeId){
-										// return false;
-									// } else {
-										// return true;
-									// }
-								// } else {
-									// if (np1.nodeId == n2.id) {
-										// return false;
-									// }
-									// return true;
-								// }
-							// } else {
-								// np2 = dm.snapToNode(n2,S.snapToNodeThreshold);
-								// if (np2.capture){
-									// dm.mergeNodes(n2,np2.node);
-								// }
-								// return true;
-							// }
-						// }
 						if (S.snapToNode){
 							var np1 = dm.snapToNode(n1,S.snapToNodeThreshold),np2=dm.snapToNode(n2,S.snapToNodeThreshold);
 							if (np1.capture && np2.capture){
@@ -863,61 +829,19 @@
 								} else {
 									dm.mergeNodes(n1,np1.node);
 									dm.mergeNodes(n2,np2.node);
-									// this.nodeSnapAnimate([n1,n2],[np1.node,np2.node],function(){
-										// n1.X = n1.beforeMoveX;
-										// n1.Y = n1.beforeMoveY;
-										// n2.X = n2.beforeMoveX;
-										// n2.Y = n2.beforeMoveY;
-										// dm.mergeNodes(n1,np1.node);
-										// dm.mergeNodes(n2,np1.node);
-									// })
 									return true;
 								}
 							} else if (np1.capture && !np2.capture){
 								dm.mergeNodes(n1,np1.node);
-								// this.nodeSnapAnimate([n1],[np1.node],function(){
-									// n1.X = n1.beforeMoveX;
-									// n1.Y = n1.beforeMoveY;
-									// dm.mergeNodes(n1,np1.node);
-								// })
 								return true;
 								
 								
 							} else if (!np1.capture && np2.capture){
 								dm.mergeNodes(n2,np2.node);
-								// this.nodeSnapAnimate([n2],[np2.node],function(){
-									// n2.X = n2.beforeMoveX;
-									// n2.Y = n2.beforeMoveY;
-									// dm.mergeNodes(n2,np2.node);
-								// })
 								return true;
 							} 
 							return true;
 						}
-						
-						// if (S.snapToLine){
-							// var lp1, lp2;
-							// if (!np1.capture && !np2.capture){
-								// lp1 = dm.snapToLine(n1,S.snapToLineThreshold);
-								// lp2 = dm.snapToLine(n2,S.snapToLineThreshold);
-								// if (lp1.lineId === lp2.lineId){
-									// return false;
-								// } else {
-									// var nonl1 = dm.splitLineElement(lp1.line,lp1.ratio),nonl2 = dm.splitLineElement(lp2.line,lp2.ratio);
-									// dm.mergeNodes(n1,nonl1);
-									// dm.mergeNodes(n2,nonl2);
-									// return true;
-								// }
-							// } else if (!np1.capture && np2.capture) {
-								// lp2 = dm.snapToLine(n2,S.snapToLineThreshold);
-// 								
-							// } else if (np1.capture && !np2.capture) {
-// 								
-// 								
-							// }
-// 							
-						// }
-						// return false;
 					},
 					
 					addASPC:function(data){

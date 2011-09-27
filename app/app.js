@@ -286,7 +286,7 @@
 				getViewPortCoordFromCanvas : function(p) {
 					return {
 						X : p.X * this.settings.viewPortScale + this.settings.viewPortShiftX,
-						Y : p.Y * this.settings.viewPortScale + this.settings.viewPortShiftY,
+						Y : p.Y * this.settings.viewPortScale + this.settings.viewPortShiftY
 					}
 				},
 				getViewPortCoordFromPage : function(p) {
@@ -670,7 +670,7 @@
 									if($D.isDefined(fn)) {
 										fn.apply(this, args);
 									}
-								},
+								}
 							});
 							flag = true;
 						}
@@ -940,7 +940,7 @@
 						},
 						"rectangle" : function() {
 							return this.vocabulary["draw"]["circle"];
-						},
+						}
 					},
 					"select" : {
 						"circleSelect" : {
@@ -957,7 +957,7 @@
 						},
 						"clickSelect" : function() {
 							return this.vocabulary["select"]["circle"];
-						},
+						}
 					},
 					"load" : {
 						"line" : {
@@ -997,14 +997,14 @@
 
 					}
 
-				},
+				}
 
 			})
 			window.Ctrl = sketchit.controllers.main;
 
 			Ext.dispatch({
 				controller : 'main',
-				action : 'initAll',
+				action : 'initAll'
 			});
 
 		}

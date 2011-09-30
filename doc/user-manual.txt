@@ -1,0 +1,78 @@
+SketchIT User Manual
+====================
+
+- Perform a sketch
+
+	Tablet: touch the screen and drag 
+	
+	Desktop: hold the left button and drag for desktop user. 
+	
+Once the finger leave the screen or release the mouse button, system will perform a sketch recognition. Then the system will check the vocabulary under different mode. There are four modes in the system: draw, select, load, move. Same sketch might trigger different action in different mode. The vocabularies are:
+ 
+	### Draw Mode ###
+	
+	- Line
+	
+		Add a line element.
+		
+	- Triangle
+	
+		Add a node constraint. Fix the node in all direction: x, y and rotation.
+	
+	- Cirle
+	
+		Release a existing node constraint. If the circle is near the constrainted node of the constraint triangle, the constraint becomes a pin; If the circle is near the edge that is opposite to the constrainted node, it becomes a roller. 
+		 
+	### Select Mode ###
+	
+	- Closed curve 
+	
+		Point select. The points that inside the curve will be selected.
+		
+	- Open curve
+	
+		Intersection select. The elements that intersect with the curve will be selected.
+	
+	### Load Mode ###
+	
+	- Line 
+	
+		Add a node load.
+		
+	- Square bracket
+	
+		Add uniform distributed load on element.
+	
+- Move selected nodes
+
+	Tablet: touch the screen and drag 
+	
+	Desktop: hold the left button and drag for desktop user. 
+
+In move mode, drag with the mouse left key (desktop users) or touch the screen and move with one finger (tablet users) to move the selected components.
+
+- Zoom in/out
+
+	Tablet: two finger pinch open or close for tablet user. 
+	
+	Desktop: scroll mouse wheel.
+	
+- Pan
+
+	Tablet: two finger swipe the screen for tablet user. 
+	
+	Desktop: drag with the mouse wheel button, or hold shift key and drag with left mouse button.
+	
+	Tablet users can zoom and pan at the same time. 
+
+- Reset view port
+
+	Tablet: double tap	
+	
+	Desktop: double click
+	
+
+
+
+
+

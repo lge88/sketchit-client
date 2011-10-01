@@ -3,7 +3,8 @@
 	Ext.regApplication({
 		name : "sketchit",
 		glossOnIcon : false,
-		launch : function() {sketchit.controllers.main = Ext.regController("main", {
+		launch : function() {
+			sketchit.controllers.main = Ext.regController("main", {
 				initAll : function(options) {
 					//init views
 					this.mainView = new sketchitMainView({
@@ -118,7 +119,8 @@
 
 					})
 
-					this.inputStrokes = []; this.logs = [], this.shapeRecognizer = new DollarRecognizer();
+					this.inputStrokes = [];
+					this.logs = [], this.shapeRecognizer = new DollarRecognizer();
 					this.initHandlers();
 					this.setCanvasPosition(0, this.topBar.getHeight(), this.mainView.getWidth(), this.mainView.getHeight() - this.topBar.getHeight() - this.bottomBar.getHeight());
 					this.resetViewPort();
@@ -245,6 +247,9 @@
 					//save button
 					this.bottomBar.getComponent(7).setHandler(this.saveScript, this);
 
+					//log button
+					this.bottomBar.getComponent(9).setHandler(this.showLog, this);
+					
 					//mode toggle button
 					this.bottomBar.getComponent(11).on({
 						toggle : function() {
@@ -350,18 +355,31 @@
 						e[fn].apply(e, args)
 					})
 				},
+				// drawMessage : function() {
+					// var R = this.Renderer, //
+					// S = this.settings, //
+					// l = this.logs, //
+					// len = l.length;
+					// if(len > 0) {
+						// var m = l[len - 1]
+						// R.save();
+						// R.font = S.messageTextFont;
+						// R.fillStyle = S.messageTextFillStye;
+						// R.transform(1, 0, 0, -1, 0, 0);
+						// R.fillText(m, S.messageBoxPositionX, -S.messageBoxPositionY);
+						// R.restore();
+					// }
+				// },
 				drawMessage : function() {
 					var R = this.Renderer, //
 					S = this.settings, //
-					l = this.logs, //
-					len = l.length;
-					if(len > 0) {
-						var m = l[len - 1]
+					msg = this.screenMessage;
+					if($D.isDefined(msg)) {
 						R.save();
 						R.font = S.messageTextFont;
 						R.fillStyle = S.messageTextFillStye;
 						R.transform(1, 0, 0, -1, 0, 0);
-						R.fillText(m, S.messageBoxPositionX, -S.messageBoxPositionY);
+						R.fillText(msg, S.messageBoxPositionX, -S.messageBoxPositionY);
 						R.restore();
 					}
 				},
@@ -513,7 +531,7 @@
 							case "load":
 								var shape = this.shapeRecognizer.Recognize(this.inputStrokes, false);
 								var handler = this.sketchVocabulary[this.settings.mode][shape.name];
-								if (handler && this.sketchHandlers[handler]) {
+								if(handler && this.sketchHandlers[handler]) {
 									this.sketchHandlers[handler].call(this, shape.data);
 								} else {
 									this.sketchHandlers["noSuchGesture"].call(this);
@@ -531,13 +549,12 @@
 					this.inputStrokes = [];
 					this.shiftKey = e.event.shiftKey;
 				},
-				afterMovingObjects: function() {
+				afterMovingObjects : function() {
 					this.beforeUndoableCommand();
 					var count;
 					var dx = this.touchCurrentX - this.touchStartX;
 					var dy = this.touchCurrentY - this.touchStartY;
 					var S = this.settings;
-					
 					count = this.Domain["transitSelectedNodes"](dx, dy);
 					// test merge
 					if($D.isDefined(this.Domain.selectedNodes[1])) {
@@ -548,16 +565,16 @@
 					}
 					if(count) {
 						var msg = "move " + count + " objects, dx = " + dx + " dy = " + dy;
-					} 
-					this.afterUndoableCommand(count,msg);
+					}
+					this.afterUndoableCommand(count, msg);
 					this.refresh();
 				},
-				sketchSelect: function(){
+				sketchSelect : function() {
 					this.beforeUndoableCommand();
 					var data = this.shapeRecognizer.Recognize(this.inputStrokes, false).data;
 					var d = $D.distance(data.from, data.to);
-					var l = data.PathLength; 
-					var tags; 
+					var l = data.PathLength;
+					var tags;
 					if(d / l > this.settings.circleSelectThreshold) {
 						tags = this.Domain["intersectSelect"]({
 							"curve" : data.ResamplePoints
@@ -579,24 +596,69 @@
 						if(unSelectCount > 0) {
 							msg += "unselect " + unSelectCount + " objects; ";
 						}
-					} 
-					this.afterUndoableCommand(tags,msg);
+					}
+					this.afterUndoableCommand(tags, msg);
 					this.refresh();
 				},
-				beforeUndoableCommand : function () {
+				beforeUndoableCommand : function() {
 					this.Domain.mark();
 				},
-				afterUndoableCommand : function (success,msg) {
-					if (success) {
-						this.Domain.group();
-						this.bottomBar.getComponent(5).setDisabled(false);
-						this.bottomBar.getComponent(6).setDisabled(true);
-						this.logs.push(msg || "command has been executed successfully");
-					} else {
-						this.Domain.unmark();
-						this.logs.push(msg || "do nothing");
+				afterUndoableCommand : function(domainTouched, domainChanged, isUndoable) {
+					var touched = $D.isDefined(domainTouched)? domainTouched:true;
+					var changed = $D.isDefined(domainChanged)? domainChanged:true;
+					var undoable = $D.isDefined(isUndoable)? isUndoable:true;
+					this.Domain.group();
+					if(touched) {
+						if(changed) {
+							if(!undoable) {
+								this.Domain._timeline.pop();
+								this.Domain._head--;
+							} else {
+								this.bottomBar.getComponent(5).setDisabled(false);
+								this.bottomBar.getComponent(6).setDisabled(true);	
+							}
+						} else {
+							this.Domain.undo();
+							this.Domain._timeline.pop();
+						}
 					}
 				},
+				printMessage : function(msg) {
+					this.screenMessage = msg;
+				},
+				logMessage: function(msgobj) {
+					this.logs.push(msgobj);
+				},
+				// afterUndoableCommand : function(msg, saveToTimeline, domainChanged) {
+					// var changed = $D.isDefined(domainChanged)? domainChanged:true;
+					// var discard = $D.isDefined(saveToTimeline)? !saveToTimeline:saveToTimeline;
+					// this.Domain.group();
+					// if(changed) {
+						// if (discard) {
+							// // this.Domain.undo();
+							// this.Domain._timeline.pop();
+							// this.Domain._head--;
+						// } else {
+							// this.bottomBar.getComponent(5).setDisabled(false);
+							// this.bottomBar.getComponent(6).setDisabled(true);
+						// }
+						// this.logs.push(msg || "command has been executed successfully");
+					// } else {
+						// this.logs.push(msg || "do nothing");
+					// }
+					// if (discard) {
+						// if (!$D.isDefined(changed) || changed == true) {
+							// this.Domain.undo();
+							// this.Domain._timeline.pop();
+						// }
+						// this.logs.push(msg || "do nothing");
+						// //this.Domain._head--;
+					// } else {
+						// this.bottomBar.getComponent(5).setDisabled(false);
+						// this.bottomBar.getComponent(6).setDisabled(true);
+						// this.logs.push(msg || "command has been executed successfully");
+					// }
+				// },
 				sketchVocabulary : {
 					"draw" : {
 						"line" : "drawLine",
@@ -609,22 +671,23 @@
 					}
 				},
 				sketchHandlers : {
-					
+
 					"noSuchGesture" : function() {
 						var msg = "no such gesture :-(";
-						this.logs.push(msg);
+						// this.logMessage(msg);
+						this.printMessage(msg);
 						this.refresh();
 					},
 					"drawLine" : function(data) {
 						this.beforeUndoableCommand();
 						var dm = this.Domain, S = this.settings, //
 						fx = data.from.X, fy = data.from.Y, tx = data.to.X, ty = data.to.Y, //
-						n1 = dm.createNode(data.from.X, data.from.Y), //
-						n2 = dm.createNode(data.to.X, data.to.Y);
+						n1 = dm.createNode(fx, fy), //
+						n2 = dm.createNode(tx, ty);
 						e = dm.createLineElement(S.defaultLineELementType, n1, n2, {
 							geomTransf : dm.theGeomTransfs[S.defaultGeomTransfId]
 						});
-						var flag;
+						var changed;
 						if(S.snapToNode) {
 							var np1 = dm.snapToNode(n1, S.snapToNodeThreshold), np2 = dm.snapToNode(n2, S.snapToNodeThreshold);
 							if(np1.capture && np2.capture) {
@@ -632,76 +695,143 @@
 									dm.removeLineElement(e);
 									dm.removeNode(n1);
 									dm.removeNode(n2);
-									flag = false;
+									changed = false;
 								} else {
 									dm.mergeNodes(n1, np1.node);
 									dm.mergeNodes(n2, np2.node);
-									flag = true;
+									changed = true;
 								}
 							} else if(np1.capture && !np2.capture) {
 								dm.mergeNodes(n1, np1.node);
-								flag = true;
+								changed = true;
 							} else if(!np1.capture && np2.capture) {
 								dm.mergeNodes(n2, np2.node);
-								flag = true;
+								changed = true;
+							} else {
+								changed = true;
 							}
-							flag = true;
 						}
-						if(flag) {
-							var msg = "add a "+ e.ComponetName;
-						}		
-						this.afterUndoableCommand (flag,msg);
+						var msg;
+						if(changed) {
+							msg = "add a " + e.ComponetName;
+							this.logMessage(msg);
+						} else {
+							msg = "nodes are merged, abort";
+						}
+						this.afterUndoableCommand(true,changed,true);
+						this.printMessage(msg);
 						this.refresh();
 					},
 					"drawTriangle" : function(data) {
 						this.beforeUndoableCommand();
-						var flag;
-						
-						
-						
-						
-						
-						
-						if(flag) {
+						var dm = this.Domain, S = this.settings, //
+						n = dm.createNode(data.from.X, data.from.Y), //
+						spc = dm.createSPC(n);
+						var changed;
+						if(S.SPCSnapToNode) {
+							var np = dm.snapToNode(n, S.SPCSnapToNodeThreshold);
+							if(np.capture) {
+								if(!$D.isDefined(np.node.SPC)) {
+									dm.mergeNodes(n, np.node);
+									dm.set(["theNodes", np.nodeId, "SPC"], spc);
+									dm.set(["theSPCs", spc.id, "node"], np.node);
+									changed = true;
+								} else {
+									dm.removeNode(n);
+									dm.removeSPC(spc);
+									changed = false;
+								}
+ 							}
+						}
+
+						if(changed) {
 							var msg = "add a single point constraint";
-						}		
-						this.afterUndoableCommand (flag,msg);
+							this.logMessage(msg);
+						} else {
+							var msg = "the point is already fixed, abort";
+						}
+						this.afterUndoableCommand(true, changed, true);
+						this.printMessage(msg);
 						this.refresh();
 					},
 					"drawCircle" : function(data) {
 						this.beforeUndoableCommand();
-						var flag;
-						
-						
-						
-						if(flag) {
-							var msg = "release a single point constraint";
-						}		
-						this.afterUndoableCommand (flag,msg);
+						var discard;
+						var dm = this.Domain;
+						var S = this.settings;
+						var cen = data.Centroid;
+						var top;
+						var d = S.circleSnapToSPCThreshold + 10;
+						var theSPC;
+						var changed = false;
+						$D.iterate(dm.theSPCs, function(spc) {
+							var d1 = $D.distance(spc.node, cen);
+							var d2 = $D.distance(spc.getBottomCenter(), cen);
+							var tmp;
+							if(d1 < d2) {
+								tmp = d1;
+								top = true;
+							} else {
+								tmp = d2;
+								top = false;
+							}
+							if(tmp < d) {
+								d = tmp;
+								theSPC = spc;
+							}
+						})
+						if(theSPC && d < S.circleSnapToSPCThreshold) {
+							if(top) {
+								if(theSPC.RZ == 1) {
+									dm.set(["theSPCs", theSPC.id, "RZ"], 0);
+								}
+							} else {
+								if(theSPC.direction === "up" || theSPC.direction === "down") {
+									if(theSPC.X == 1) {
+										dm.set(["theSPCs", theSPC.id, "X"], 0);
+									}
+								} else if(theSPC.direction === "left" || theSPC.direction === "right") {
+									if(theSPC.Y == 1) {
+										dm.set(["theSPCs", theSPC.id, "Y"], 0);
+									}
+								}
+							}
+							changed = true;
+						}
+
+						var msg;
+						if(changed) {
+							if(top) {
+								msg = "make a pin";
+							} else {
+								msg = "make a roller";
+							}
+							this.logMessage(msg);
+						} else {
+							msg = "do nothing";
+						}
+						this.afterUndoableCommand(changed, changed, true);
+						this.printMessage(msg);
 						this.refresh();
 					},
 					"loadLine" : function(data) {
 						this.beforeUndoableCommand();
 						var flag;
-						
-						
-						
+
 						if(flag) {
 							var msg = "add a point load";
-						}		
-						this.afterUndoableCommand (flag,msg);
+						}
+						this.afterUndoableCommand(flag, msg);
 						this.refresh();
 					},
 					"loadSquareBracket" : function(data) {
 						this.beforeUndoableCommand();
 						var flag;
-						
-						
-						
+
 						if(flag) {
 							var msg = "add a uniform distributed load";
-						}		
-						this.afterUndoableCommand (flag,msg);
+						}
+						this.afterUndoableCommand(flag, msg);
 						this.refresh();
 					},
 				},
@@ -767,7 +897,6 @@
 					this.recordDeltaTransform();
 					this.refresh();
 				},
-				
 				clearAll : function() {
 					var r = confirm("Restart the sketch: you can not undo this operation, are you sure?");
 					if(r === true) {
@@ -791,6 +920,7 @@
 					} else {
 						this.refresh();
 					}
+					this.logMessage("undo");
 
 				},
 				redo : function() {
@@ -807,9 +937,13 @@
 					} else {
 						this.refresh();
 					}
+					this.logMessage("redo");
 				},
 				saveScript : function() {
 					alert(this.Domain.runStaticConstant(this.settings.modelScale, this.settings.loadScale));
+				},
+				showLog: function() {
+					alert("logs:\n"+this.logs);
 				},
 				reanalyze : function(fn) {
 					var args = Array.prototype.slice.call(arguments, 1), flag = false;
@@ -871,8 +1005,7 @@
 						}
 					}, dt, this)
 				}
-				
-			}); 
+			});
 			window.Ctrl = sketchit.controllers.main;
 
 			Ext.dispatch({

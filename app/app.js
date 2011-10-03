@@ -46,7 +46,7 @@
 						loadScale : 1.0,
 
 						mouseWheelSpeedFactor : 5, //1~10, scale = e^(wheelDelta*speedFactor/speedBase)
-						mouseWheelSpeedBase : 1000, //fixed
+						mouseWheelSpeedBase : 5000, //fixed
 
 						viewPortScale : 1.0,
 						maxViewPortScale : 20.0,
@@ -355,21 +355,6 @@
 						e[fn].apply(e, args)
 					})
 				},
-				// drawMessage : function() {
-					// var R = this.Renderer, //
-					// S = this.settings, //
-					// l = this.logs, //
-					// len = l.length;
-					// if(len > 0) {
-						// var m = l[len - 1]
-						// R.save();
-						// R.font = S.messageTextFont;
-						// R.fillStyle = S.messageTextFillStye;
-						// R.transform(1, 0, 0, -1, 0, 0);
-						// R.fillText(m, S.messageBoxPositionX, -S.messageBoxPositionY);
-						// R.restore();
-					// }
-				// },
 				drawMessage : function() {
 					var R = this.Renderer, //
 					S = this.settings, //
@@ -623,42 +608,22 @@
 						}
 					}
 				},
+				afterReanalyzeRequiredCommand: function() {
+					var S = this.settings;
+					if (S.autoAnalysis) {
+						this.reanalyze(function(){
+							this.refresh();
+						})
+					} else {
+						this.refresh();
+					}
+				},
 				printMessage : function(msg) {
 					this.screenMessage = msg;
 				},
 				logMessage: function(msgobj) {
 					this.logs.push(msgobj);
 				},
-				// afterUndoableCommand : function(msg, saveToTimeline, domainChanged) {
-					// var changed = $D.isDefined(domainChanged)? domainChanged:true;
-					// var discard = $D.isDefined(saveToTimeline)? !saveToTimeline:saveToTimeline;
-					// this.Domain.group();
-					// if(changed) {
-						// if (discard) {
-							// // this.Domain.undo();
-							// this.Domain._timeline.pop();
-							// this.Domain._head--;
-						// } else {
-							// this.bottomBar.getComponent(5).setDisabled(false);
-							// this.bottomBar.getComponent(6).setDisabled(true);
-						// }
-						// this.logs.push(msg || "command has been executed successfully");
-					// } else {
-						// this.logs.push(msg || "do nothing");
-					// }
-					// if (discard) {
-						// if (!$D.isDefined(changed) || changed == true) {
-							// this.Domain.undo();
-							// this.Domain._timeline.pop();
-						// }
-						// this.logs.push(msg || "do nothing");
-						// //this.Domain._head--;
-					// } else {
-						// this.bottomBar.getComponent(5).setDisabled(false);
-						// this.bottomBar.getComponent(6).setDisabled(true);
-						// this.logs.push(msg || "command has been executed successfully");
-					// }
-				// },
 				sketchVocabulary : {
 					"draw" : {
 						"line" : "drawLine",
@@ -680,16 +645,21 @@
 					},
 					"drawLine" : function(data) {
 						this.beforeUndoableCommand();
-						var dm = this.Domain, S = this.settings, //
-						fx = data.from.X, fy = data.from.Y, tx = data.to.X, ty = data.to.Y, //
-						n1 = dm.createNode(fx, fy), //
-						n2 = dm.createNode(tx, ty);
-						e = dm.createLineElement(S.defaultLineELementType, n1, n2, {
+						var dm = this.Domain;
+						var S = this.settings;
+						var fx = data.from.X;
+						var fy = data.from.Y;
+						var tx = data.to.X;
+						var ty = data.to.Y;
+						var n1 = dm.createNode(fx, fy);
+						var n2 = dm.createNode(tx, ty);
+						var e = dm.createLineElement(S.defaultLineELementType, n1, n2, {
 							geomTransf : dm.theGeomTransfs[S.defaultGeomTransfId]
 						});
 						var changed;
 						if(S.snapToNode) {
-							var np1 = dm.snapToNode(n1, S.snapToNodeThreshold), np2 = dm.snapToNode(n2, S.snapToNodeThreshold);
+							var np1 = dm.snapToNode(n1, S.snapToNodeThreshold);
+							var np2 = dm.snapToNode(n2, S.snapToNodeThreshold);
 							if(np1.capture && np2.capture) {
 								if(np1.nodeId == n2.id || np2.nodeId == n1.id || np1.nodeId == np2.nodeId) {
 									dm.removeLineElement(e);
@@ -720,13 +690,15 @@
 						}
 						this.afterUndoableCommand(true,changed,true);
 						this.printMessage(msg);
-						this.refresh();
+						this.afterReanalyzeRequiredCommand();
+						// this.refresh();
 					},
 					"drawTriangle" : function(data) {
 						this.beforeUndoableCommand();
-						var dm = this.Domain, S = this.settings, //
-						n = dm.createNode(data.from.X, data.from.Y), //
-						spc = dm.createSPC(n);
+						var dm = this.Domain;
+						var S = this.settings;
+						var n = dm.createNode(data.from.X, data.from.Y);
+						var spc = dm.createSPC(n);
 						var changed;
 						if(S.SPCSnapToNode) {
 							var np = dm.snapToNode(n, S.SPCSnapToNodeThreshold);
@@ -752,7 +724,8 @@
 						}
 						this.afterUndoableCommand(true, changed, true);
 						this.printMessage(msg);
-						this.refresh();
+						this.afterReanalyzeRequiredCommand();
+						// this.refresh();
 					},
 					"drawCircle" : function(data) {
 						this.beforeUndoableCommand();
@@ -810,19 +783,58 @@
 						} else {
 							msg = "do nothing";
 						}
-						this.afterUndoableCommand(changed, changed, true);
+						
+						var touched = changed;
+						this.afterUndoableCommand(touched, changed, true);
 						this.printMessage(msg);
-						this.refresh();
+						this.afterReanalyzeRequiredCommand();
+						// this.refresh();
 					},
 					"loadLine" : function(data) {
 						this.beforeUndoableCommand();
-						var flag;
+						var dm = this.Domain;
+						var touched;
+						var changed;
+						var S = this.settings;
+						var np1 = dm.snapToNode(data.to, S.loadSnapToNodeThreshold);
+						var node;
+						var freeEnd;
+						var nodeAtArrowEnd;
+						var dx, dy;
+						if (np1.capture) {
+							node = np1.node;
+							freeEnd = data.from;
+							nodeAtArrowEnd = true;
+							dx = node.X - freeEnd.X;
+							dy = node.Y - freeEnd.Y;
 
-						if(flag) {
-							var msg = "add a point load";
+						} else {
+							var np2 = dm.snapToNode(data.from, S.loadSnapToNodeThreshold); 
+							if (np2.capture) {
+								node = np2.node;
+								freeEnd = data.to;
+								nodeAtArrowEnd = false;
+								dx = freeEnd.X - node.X;
+								dy = freeEnd.Y - node.Y;
+							};
+						};
+						
+						if (node) {
+							dm.createNodeLoad(node, freeEnd, nodeAtArrowEnd, dx, dy, 0.0);
+							touched = true;
+							changed = true;
+						} 
+						
+						var msg;
+						if(changed) {
+							msg = "add a point load";
+						} else {
+							msg = "do nothing";
 						}
-						this.afterUndoableCommand(flag, msg);
-						this.refresh();
+						this.afterUndoableCommand(touched, changed, msg);
+						this.printMessage(msg);
+						this.afterReanalyzeRequiredCommand();
+						// this.refresh();
 					},
 					"loadSquareBracket" : function(data) {
 						this.beforeUndoableCommand();
@@ -948,15 +960,15 @@
 				reanalyze : function(fn) {
 					var args = Array.prototype.slice.call(arguments, 1), flag = false;
 					if(this.Domain.isReadyToRun()) {
-						if(this.settings.showMoment || this.settings.showDeformation) {
+						// if(this.settings.showMoment || this.settings.showDeformation) {
 							$D.ajaxPost({
 								url : "/cgi-bin/lge/sketchit-server/test/sketchit.ops",
 								scope : this,
 								data : this.Domain.runStaticConstant(this.settings.showDeformation, this.settings.showMoment),
 								success : function(result) {
-									this.Domain.loadResultData(result.responseText);
+									this.Domain.deformationAvailable = this.Domain.loadResultData(result.responseText);
+									// this.Domain.loadResultData(result.responseText);
 									// this.Domain.set("deformationAvailable", true);
-									this.Domain.deformationAvailable = true;
 									if(this.settings.autoDeformationScale) {
 										var ascale = this.getAutoDeformationScale(this.settings.maxDeformationOnScreen)
 										if(isFinite(ascale)) {
@@ -977,7 +989,7 @@
 								}
 							});
 							flag = true;
-						}
+						// }
 					} else {
 						// this.Domain.set("deformationAvailable", false);
 						this.Domain.deformationAvailable = false;

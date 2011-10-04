@@ -50,10 +50,10 @@ sketchit.views.Topbar = Ext.extend(Ext.Toolbar, {
 					pressed:true
 				},{
 					text: 'ElementDirection',
-					pressed:true
+					pressed:false
 				},{
 					text: 'ElementId',
-					pressed:true
+					pressed:false
 				}
 				]
 			}]

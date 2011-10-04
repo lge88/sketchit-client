@@ -88,11 +88,14 @@
 
 						circleSnapToSPCThreshold : 25,
 
+						loadSnapToNode: true,
 						loadSnapToNodeThreshold : 15,
+						
+						loadSnapToLine : true,
 						loadSnapToLineThreshold : 15,
 
 						autoMergeNodeOnLine : true,
-						autoMergeNodeOnLineThreshold : 1,
+						autoMergeNodeOnLineThreshold : 10,
 
 						showNodeId : true,
 						showElementId : true,
@@ -182,10 +185,14 @@
 					//snap to node button
 					this.topBar.getComponent(0).getComponent(7).setHandler(function() {
 						this.settings.snapToNode = !this.settings.snapToNode;
+						this.settings.SPCSnapToNode = !this.settings.SPCSnapToNode;
+						this.settings.loadSnapToNode = !this.settings.loadSnapToNode;
 					}, this);
 					//snap to line button
 					this.topBar.getComponent(0).getComponent(8).setHandler(function() {
 						this.settings.snapToLine = !this.settings.snapToLine;
+						this.settings.SPCSnapToLine = !this.settings.SPCSnapToLine;
+						this.settings.loadSnapToLine = !this.settings.loadSnapToLine;
 					}, this);
 					//show element direction
 					this.topBar.getComponent(0).getComponent(9).setHandler(function() {
@@ -657,30 +664,91 @@
 							geomTransf : dm.theGeomTransfs[S.defaultGeomTransfId]
 						});
 						var changed;
+						var nt = S.snapToNodeThreshold / S.viewPortScale;
+						var lt = S.snapToLineThreshold / S.viewPortScale;
+						var at = S.autoMergeNodeOnLineThreshold / S.viewPortScale
 						if(S.snapToNode) {
-							var np1 = dm.snapToNode(n1, S.snapToNodeThreshold);
-							var np2 = dm.snapToNode(n2, S.snapToNodeThreshold);
+							var np1 = dm.snapToNode(n1, nt);
+							var np2 = dm.snapToNode(n2, nt);
+							// var np1 = dm.snapToNode(n1, S.snapToNodeThreshold);
+							// var np2 = dm.snapToNode(n2, S.snapToNodeThreshold);
 							if(np1.capture && np2.capture) {
 								if(np1.nodeId == n2.id || np2.nodeId == n1.id || np1.nodeId == np2.nodeId) {
-									dm.removeLineElement(e);
-									dm.removeNode(n1);
-									dm.removeNode(n2);
+									// dm.removeLineElement(e);
+									// dm.removeNode(n1);
+									// dm.removeNode(n2);
 									changed = false;
 								} else {
-									dm.mergeNodes(n1, np1.node);
-									dm.mergeNodes(n2, np2.node);
+									n1 = dm.mergeNodes(n1, np1.node);
+									n2 = dm.mergeNodes(n2, np2.node);
 									changed = true;
 								}
 							} else if(np1.capture && !np2.capture) {
-								dm.mergeNodes(n1, np1.node);
+								n1 = dm.mergeNodes(n1, np1.node);
 								changed = true;
 							} else if(!np1.capture && np2.capture) {
-								dm.mergeNodes(n2, np2.node);
+								n2 = dm.mergeNodes(n2, np2.node);
 								changed = true;
 							} else {
 								changed = true;
 							}
-						}
+						};
+						
+						if (!(np1.capture || np2.capture) && S.snapToLine) {
+							var nl1 = dm.snapToLine(n1, lt);
+							var nl2 = dm.snapToLine(n2, lt);
+							// var nl1 = dm.snapToLine(n1, S.snapToLineThreshold);
+							// var nl2 = dm.snapToLine(n2, S.snapToLineThreshold);
+							if ((nl1.capture && nl2.capture) && (nl1.lineId == nl2.lineId)) {
+								changed = false
+							} else {
+								if (nl1.capture){
+									var nonnl1 = dm.splitLineElement(nl1.line,nl1.ratio);
+									n1 = dm.mergeNodes(n1,nonnl1);
+								}; 
+								if (nl2.capture) {
+									var nonnl2 = dm.splitLineElement(nl2.line,nl2.ratio);
+									n2 = dm.mergeNodes(n2,nonnl2);
+								};
+							};
+						};
+						
+						if (S.snapToGrid) {
+							var grid = S.grid;
+							dm.transitNode(n1.id, Math.round(n1.X / grid) * grid - n1.X, Math.round(n1.Y / grid) * grid - n1.Y); 
+							dm.transitNode(n2.id, Math.round(n2.X / grid) * grid - n2.X, Math.round(n2.Y / grid) * grid - n2.Y); 
+							// dm.transitNode(n2.id, n2.X - Math.round(n2.X / grid) * grid, n2.Y - Math.round(n2.Y / grid) * grid); 
+						};
+						
+						if (changed) {
+							var ratios = [];
+							var ns = [];
+							$D.iterate(dm.theNodes,function(n){
+								if (n.id != e.getFrom().id && n.id != e.getEnd().id) {
+									var nl = dm.snapToLine(n, at);
+									if (nl.capture) {
+										ratios.push(nl.ratio);
+										ns.push(n);
+									};
+									
+								}
+							});
+							if (ns.length > 0) {
+								var narr = dm.splitLineElement(e, ratios);
+								if (!$D.isArray(narr)) {
+									narr = [narr]
+								};
+								for (var i=0; i < ns.length; i++) {
+									dm.mergeNodes(ns[i],narr[i]);
+									if (ns[i].SPC) {
+										dm.set(["theNodes", narr[i].id, "SPC"], ns[i].SPC);
+										dm.set(["theSPCs", ns[i].SPC.id, "node"], narr[i]);
+									}
+								};
+							};
+							
+						};
+						
 						var msg;
 						if(changed) {
 							msg = "add a " + e.ComponetName;
@@ -700,8 +768,12 @@
 						var n = dm.createNode(data.from.X, data.from.Y);
 						var spc = dm.createSPC(n);
 						var changed;
+						var np;
+						var nt = S.SPCSnapToNodeThreshold/S.viewPortScale;
+						var lt = S.SPCSnapToLineThreshold/S.viewPortScale;
 						if(S.SPCSnapToNode) {
-							var np = dm.snapToNode(n, S.SPCSnapToNodeThreshold);
+							// np = dm.snapToNode(n, S.SPCSnapToNodeThreshold);
+							np = dm.snapToNode(n, nt);
 							if(np.capture) {
 								if(!$D.isDefined(np.node.SPC)) {
 									dm.mergeNodes(n, np.node);
@@ -709,12 +781,23 @@
 									dm.set(["theSPCs", spc.id, "node"], np.node);
 									changed = true;
 								} else {
-									dm.removeNode(n);
-									dm.removeSPC(spc);
+									// dm.removeNode(n);
+									// dm.removeSPC(spc);
 									changed = false;
 								}
  							}
 						}
+						
+						if (!(np && np.capture) && S.SPCSnapToLine) {
+							var nl = dm.snapToLine(n, lt);
+							if (nl.capture){
+								var nonnl = dm.splitLineElement(nl.line,nl.ratio);
+								dm.mergeNodes(n,nonnl);
+								dm.set(["theNodes", nonnl.id, "SPC"], spc);
+								dm.set(["theSPCs", spc.id, "node"], nonnl);
+								changed = true;
+							}
+						};
 
 						if(changed) {
 							var msg = "add a single point constraint";
@@ -740,16 +823,10 @@
 						$D.iterate(dm.theSPCs, function(spc) {
 							var d1 = $D.distance(spc.node, cen);
 							var d2 = $D.distance(spc.getBottomCenter(), cen);
-							var tmp;
-							if(d1 < d2) {
-								tmp = d1;
-								top = true;
-							} else {
-								tmp = d2;
-								top = false;
-							}
+							var tmp = (d1 < d2) ? d1 : d2;
 							if(tmp < d) {
 								d = tmp;
+								top = (d1 < d2) ? true : false;
 								theSPC = spc;
 							}
 						})
@@ -796,28 +873,54 @@
 						var touched;
 						var changed;
 						var S = this.settings;
-						var np1 = dm.snapToNode(data.to, S.loadSnapToNodeThreshold);
 						var node;
 						var freeEnd;
 						var nodeAtArrowEnd;
 						var dx, dy;
-						if (np1.capture) {
-							node = np1.node;
-							freeEnd = data.from;
-							nodeAtArrowEnd = true;
-							dx = node.X - freeEnd.X;
-							dy = node.Y - freeEnd.Y;
-
-						} else {
-							var np2 = dm.snapToNode(data.from, S.loadSnapToNodeThreshold); 
-							if (np2.capture) {
-								node = np2.node;
-								freeEnd = data.to;
-								nodeAtArrowEnd = false;
-								dx = freeEnd.X - node.X;
-								dy = freeEnd.Y - node.Y;
+						var nt = S.loadSnapToNodeThreshold/S.viewPortScale;
+						var lt = S.loadSnapToLineThreshold/S.viewPortScale;
+						var np1 = dm.snapToNode(data.to, nt);
+						if (S.loadSnapToNode) {
+							if (np1.capture) {
+								node = np1.node;
+								freeEnd = data.from;
+								nodeAtArrowEnd = true;
+								dx = node.X - freeEnd.X;
+								dy = node.Y - freeEnd.Y;
+	
+							} else {
+								var np2 = dm.snapToNode(data.from, nt); 
+								if (np2.capture) {
+									node = np2.node;
+									freeEnd = data.to;
+									nodeAtArrowEnd = false;
+									dx = freeEnd.X - node.X;
+									dy = freeEnd.Y - node.Y;
+								};
 							};
+						}
+						
+						
+						if (!node && S.loadSnapToLine) {
+							var nl = dm.snapToLine(data.to, lt);
+							if (nl.capture){
+								node = dm.splitLineElement(nl.line,nl.ratio);
+								freeEnd = data.from;
+								nodeAtArrowEnd = true;
+								dx = node.X - freeEnd.X;
+								dy = node.Y - freeEnd.Y;
+							} else {
+								nl = dm.snapToLine(data.from, lt);
+								if (nl.capture) {
+									node = dm.splitLineElement(nl.line,nl.ratio);
+									freeEnd = data.to;
+									nodeAtArrowEnd = false;
+									dx = freeEnd.X - node.X;
+									dy = freeEnd.Y - node.Y;
+								}
+							}
 						};
+						
 						
 						if (node) {
 							dm.createNodeLoad(node, freeEnd, nodeAtArrowEnd, dx, dy, 0.0);

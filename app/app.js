@@ -98,11 +98,11 @@
 						autoMergeNodeOnLineThreshold : 10,
 
 						showNodeId : true,
-						showElementId : true,
+						showElementId : false,
 						showMarks : false,
 						showGrid : true,
 						showSPC : true,
-						showLineElementDirection : true,
+						showLineElementDirection : false,
 
 						canvasBgColor : "rgb(255,255,255)",
 						inputStrokeStyle : "rgb(0,0,255)",
@@ -1063,7 +1063,7 @@
 				reanalyze : function(fn) {
 					var args = Array.prototype.slice.call(arguments, 1), flag = false;
 					if(this.Domain.isReadyToRun()) {
-						// if(this.settings.showMoment || this.settings.showDeformation) {
+						if(this.settings.showMoment || this.settings.showDeformation) {
 							$D.ajaxPost({
 								url : "/cgi-bin/lge/sketchit-server/test/sketchit.ops",
 								scope : this,
@@ -1092,7 +1092,7 @@
 								}
 							});
 							flag = true;
-						// }
+						}
 					} else {
 						// this.Domain.set("deformationAvailable", false);
 						this.Domain.deformationAvailable = false;

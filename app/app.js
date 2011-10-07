@@ -696,7 +696,7 @@
 							}
 						};
 						
-						if (!(np1.capture || np2.capture) && S.snapToLine) {
+						if (!S.snapToNode || (!(np1.capture && np2.capture) && S.snapToLine)) {
 							var nl1 = dm.snapToLine(n1, lt);
 							var nl2 = dm.snapToLine(n2, lt);
 							// var nl1 = dm.snapToLine(n1, S.snapToLineThreshold);
@@ -728,7 +728,8 @@
 							$D.iterate(dm.theNodes,function(n){
 								if (n.id != e.getFrom().id && n.id != e.getEnd().id) {
 									var nl = dm.snapToLine(n, at);
-									if (nl.capture) {
+									if (nl.capture && nl.lineId == e.id) {
+									// if (nl.capture) {
 										ratios.push(nl.ratio);
 										ns.push(n);
 									};
@@ -790,7 +791,7 @@
  							}
 						}
 						
-						if (!(np && np.capture) && S.SPCSnapToLine) {
+						if (!S.snapToNode || (!(np && np.capture) && S.SPCSnapToLine)) {
 							var nl = dm.snapToLine(n, lt);
 							if (nl.capture){
 								var nonnl = dm.splitLineElement(nl.line,nl.ratio);

@@ -68,6 +68,7 @@
 
 						snapToNode : true,
 						snapToNodeThreshold : 50,
+						moveSnapToNodeThreshold: 10,
 
 						snapToLine : true,
 						snapToLineThreshold : 25,
@@ -493,7 +494,7 @@
 						this.deltaTransform(1, P.X - this.touchStartX, P.Y - this.touchStartY);
 					} else {
 						if(this.settings.mode === "move" && this.settings.touchMoveAnimation === true) {
-							this.Domain["moveSelectedNodes"](P.X - this.touchCurrentX, P.Y - this.touchCurrentY);
+							this.Domain["moveSelectedObjects"](P.X - this.touchCurrentX, P.Y - this.touchCurrentY);
 						} else {
 							this.inputStrokes.push(P);
 							var l = this.inputStrokes.length;
@@ -547,10 +548,11 @@
 					var dx = this.touchCurrentX - this.touchStartX;
 					var dy = this.touchCurrentY - this.touchStartY;
 					var S = this.settings;
-					count = this.Domain["transitSelectedNodes"](dx, dy);
+					count = this.Domain["transitSelectedObjects"](dx, dy);
+					var changed = count > 0 ? true : false;
 					// test merge
 					if($D.isDefined(this.Domain.selectedNodes[1])) {
-						var np1 = this.Domain.snapToNode(this.Domain.selectedNodes[1], S.snapToNodeThreshold);
+						var np1 = this.Domain.snapToNode(this.Domain.selectedNodes[1], S.moveSnapToNodeThreshold);
 						if(np1.capture) {
 							this.Domain.mergeNodes(this.Domain.selectedNodes[1], np1.node);
 						}
@@ -558,7 +560,7 @@
 					if(count) {
 						var msg = "move " + count + " objects, dx = " + dx + " dy = " + dy;
 					}
-					this.afterUndoableCommand(count, msg);
+					this.afterUndoableCommand(changed, changed, msg);
 					this.refresh();
 				},
 				sketchSelect : function() {
@@ -715,8 +717,8 @@
 						
 						if (S.snapToGrid) {
 							var grid = S.grid;
-							dm.transitNode(n1.id, Math.round(n1.X / grid) * grid - n1.X, Math.round(n1.Y / grid) * grid - n1.Y); 
-							dm.transitNode(n2.id, Math.round(n2.X / grid) * grid - n2.X, Math.round(n2.Y / grid) * grid - n2.Y); 
+							dm.transitNode(["theNodes",n1.id], Math.round(n1.X / grid) * grid - n1.X, Math.round(n1.Y / grid) * grid - n1.Y); 
+							dm.transitNode(["theNodes",n2.id], Math.round(n2.X / grid) * grid - n2.X, Math.round(n2.Y / grid) * grid - n2.Y); 
 							// dm.transitNode(n2.id, n2.X - Math.round(n2.X / grid) * grid, n2.Y - Math.round(n2.Y / grid) * grid); 
 						};
 						
@@ -883,7 +885,11 @@
 						if (S.loadSnapToNode) {
 							if (np1.capture) {
 								node = np1.node;
-								freeEnd = data.from;
+								freeEnd = new $D.Node({
+									X:data.from.X,
+									Y:data.from.Y
+								});
+								
 								nodeAtArrowEnd = true;
 								dx = node.X - freeEnd.X;
 								dy = node.Y - freeEnd.Y;
@@ -892,7 +898,11 @@
 								var np2 = dm.snapToNode(data.from, nt); 
 								if (np2.capture) {
 									node = np2.node;
-									freeEnd = data.to;
+									// freeEnd = data.to;
+									freeEnd = new $D.Node({
+										X:data.to.X,
+										Y:data.to.Y
+									});
 									nodeAtArrowEnd = false;
 									dx = freeEnd.X - node.X;
 									dy = freeEnd.Y - node.Y;
@@ -904,16 +914,50 @@
 						if (!node && S.loadSnapToLine) {
 							var nl = dm.snapToLine(data.to, lt);
 							if (nl.capture){
-								node = dm.splitLineElement(nl.line,nl.ratio);
-								freeEnd = data.from;
+								node = dm.splitLineElement(nl.line, nl.ratio, true);
+								// freeEnd = data.from;
+								freeEnd = new $D.Node({
+									X:data.from.X,
+									Y:data.from.Y,
+									// constraintDirection:{
+										// X : nl.line.getDx(),
+										// Y : nl.line.getDy()
+									// },
+									constraintOnLine:new $D.LineElement({
+										nodes : [{
+											X : nl.line.getFrom().X - data.to.X + data.from.X,
+											Y : nl.line.getFrom().Y - data.to.Y + data.from.Y
+										},{
+											X : nl.line.getEnd().X - data.to.X + data.from.X,
+											Y : nl.line.getEnd().Y - data.to.Y + data.from.Y
+										}]
+									})
+								});
 								nodeAtArrowEnd = true;
 								dx = node.X - freeEnd.X;
 								dy = node.Y - freeEnd.Y;
 							} else {
 								nl = dm.snapToLine(data.from, lt);
 								if (nl.capture) {
-									node = dm.splitLineElement(nl.line,nl.ratio);
-									freeEnd = data.to;
+									node = dm.splitLineElement(nl.line, nl.ratio, true);
+									// freeEnd = data.to;
+									freeEnd = new $D.Node({
+										X:data.to.X,
+										Y:data.to.Y,
+										// constraintDirection:{
+											// X : nl.line.getDx(),
+											// Y : nl.line.getDy()
+										// },
+										constraintOnLine:new $D.LineElement({
+											nodes : [{
+												X : nl.line.getFrom().X + data.to.X - data.from.X,
+												Y : nl.line.getFrom().Y + data.to.Y - data.from.Y
+											},{
+												X : nl.line.getEnd().X + data.to.X - data.from.X,
+												Y : nl.line.getEnd().Y + data.to.Y - data.from.Y
+											}]
+										})
+									});
 									nodeAtArrowEnd = false;
 									dx = freeEnd.X - node.X;
 									dy = freeEnd.Y - node.Y;

@@ -67,7 +67,7 @@
 						momentResolution : 20,
 
 						snapToNode : true,
-						snapToNodeThreshold : 50,
+						snapToNodeThreshold : 10,
 						moveSnapToNodeThreshold: 10,
 
 						snapToLine : true,
@@ -633,6 +633,31 @@
 				logMessage: function(msgobj) {
 					this.logs.push(msgobj);
 				},
+				meshLine : function(l,n) {
+					this.beforeUndoableCommand();
+					var touched = true;
+					var changed = true;
+					var dm = this.Domain;
+					var arr = [];
+					if ($D.isArray(n)) {
+						arr = n
+					} else {
+						for (var i = 1; i < n; i++) {
+							arr.push(i/n);
+						}
+					}
+					dm.splitLineElement (l, arr, true);
+					var msg;
+					if(changed) {
+						msg = "mesh line "+ l.id + " into " + n + " segments";
+						this.logMessage(msg);
+					} else {
+						msg = "do nothing";
+					}
+					this.afterUndoableCommand(touched,changed,true);
+					this.printMessage(msg);
+					this.afterReanalyzeRequiredCommand();
+				},
 				sketchVocabulary : {
 					"draw" : {
 						"line" : "drawLine",
@@ -662,10 +687,8 @@
 						var ty = data.to.Y;
 						var n1 = dm.createNode(fx, fy);
 						var n2 = dm.createNode(tx, ty);
-						var e = dm.createLineElement(S.defaultLineELementType, n1, n2, {
-							geomTransf : dm.theGeomTransfs[S.defaultGeomTransfId]
-						});
-						var changed;
+						var changed = false;
+						var touched = true;
 						var nt = S.snapToNodeThreshold / S.viewPortScale;
 						var lt = S.snapToLineThreshold / S.viewPortScale;
 						var at = S.autoMergeNodeOnLineThreshold / S.viewPortScale
@@ -683,15 +706,19 @@
 								} else {
 									n1 = dm.mergeNodes(n1, np1.node);
 									n2 = dm.mergeNodes(n2, np2.node);
+									// touched = true;
 									changed = true;
 								}
 							} else if(np1.capture && !np2.capture) {
 								n1 = dm.mergeNodes(n1, np1.node);
+								// touched = true;
 								changed = true;
 							} else if(!np1.capture && np2.capture) {
 								n2 = dm.mergeNodes(n2, np2.node);
+								// touched = true;
 								changed = true;
 							} else {
+								// touched = true;
 								changed = true;
 							}
 						};
@@ -704,11 +731,11 @@
 							if ((nl1.capture && nl2.capture) && (nl1.lineId == nl2.lineId)) {
 								changed = false
 							} else {
-								if (nl1.capture){
+								if (nl1.capture && Math.abs(nl1.ratio -1.0) > 0.01 && Math.abs(nl1.ratio) > 0.01){
 									var nonnl1 = dm.splitLineElement(nl1.line,nl1.ratio);
 									n1 = dm.mergeNodes(n1,nonnl1);
 								}; 
-								if (nl2.capture) {
+								if (nl2.capture && Math.abs(nl2.ratio -1.0) > 0.01 && Math.abs(nl2.ratio) > 0.01) {
 									var nonnl2 = dm.splitLineElement(nl2.line,nl2.ratio);
 									n2 = dm.mergeNodes(n2,nonnl2);
 								};
@@ -719,8 +746,24 @@
 							var grid = S.grid;
 							dm.transitNode(["theNodes",n1.id], Math.round(n1.X / grid) * grid - n1.X, Math.round(n1.Y / grid) * grid - n1.Y); 
 							dm.transitNode(["theNodes",n2.id], Math.round(n2.X / grid) * grid - n2.X, Math.round(n2.Y / grid) * grid - n2.Y); 
+							$D.iterate(dm.theNodes,function(n){
+								if (n.id != n1.id && $D.distance(n,n1) < 0.01) {
+									n1 = dm.mergeNodes(n1, n);
+								};
+								if (n.id != n2.id && $D.distance(n,n2) < 0.01) {
+									n2 = dm.mergeNodes(n2, n);
+								};
+								
+							});
 							// dm.transitNode(n2.id, n2.X - Math.round(n2.X / grid) * grid, n2.Y - Math.round(n2.Y / grid) * grid); 
 						};
+						if (n1.id != n2.id) {
+							var e = dm.createLineElement(S.defaultLineELementType, n1, n2, {
+								geomTransf : dm.theGeomTransfs[S.defaultGeomTransfId]
+							});
+						} else {
+							changed = false;
+						}
 						
 						if (changed) {
 							var ratios = [];
@@ -759,7 +802,7 @@
 						} else {
 							msg = "nodes are merged, abort";
 						}
-						this.afterUndoableCommand(true,changed,true);
+						this.afterUndoableCommand(touched,changed,true);
 						this.printMessage(msg);
 						this.afterReanalyzeRequiredCommand();
 						// this.refresh();
@@ -870,6 +913,7 @@
 						this.afterReanalyzeRequiredCommand();
 						// this.refresh();
 					},
+					
 					"loadLine" : function(data) {
 						this.beforeUndoableCommand();
 						var dm = this.Domain;
@@ -924,15 +968,15 @@
 										// X : nl.line.getDx(),
 										// Y : nl.line.getDy()
 									// },
-									constraintOnLine:new $D.LineElement({
-										nodes : [{
-											X : nl.line.getFrom().X - data.to.X + data.from.X,
-											Y : nl.line.getFrom().Y - data.to.Y + data.from.Y
-										},{
-											X : nl.line.getEnd().X - data.to.X + data.from.X,
-											Y : nl.line.getEnd().Y - data.to.Y + data.from.Y
-										}]
-									})
+									// constraintOnLine:new $D.LineElement({
+										// nodes : [{
+											// X : nl.line.getFrom().X - data.to.X + data.from.X,
+											// Y : nl.line.getFrom().Y - data.to.Y + data.from.Y
+										// },{
+											// X : nl.line.getEnd().X - data.to.X + data.from.X,
+											// Y : nl.line.getEnd().Y - data.to.Y + data.from.Y
+										// }]
+									// })
 								});
 								nodeAtArrowEnd = true;
 								dx = node.X - freeEnd.X;
@@ -949,15 +993,15 @@
 											// X : nl.line.getDx(),
 											// Y : nl.line.getDy()
 										// },
-										constraintOnLine:new $D.LineElement({
-											nodes : [{
-												X : nl.line.getFrom().X + data.to.X - data.from.X,
-												Y : nl.line.getFrom().Y + data.to.Y - data.from.Y
-											},{
-												X : nl.line.getEnd().X + data.to.X - data.from.X,
-												Y : nl.line.getEnd().Y + data.to.Y - data.from.Y
-											}]
-										})
+										// constraintOnLine:new $D.LineElement({
+											// nodes : [{
+												// X : nl.line.getFrom().X + data.to.X - data.from.X,
+												// Y : nl.line.getFrom().Y + data.to.Y - data.from.Y
+											// },{
+												// X : nl.line.getEnd().X + data.to.X - data.from.X,
+												// Y : nl.line.getEnd().Y + data.to.Y - data.from.Y
+											// }]
+										// })
 									});
 									nodeAtArrowEnd = false;
 									dx = freeEnd.X - node.X;
@@ -966,12 +1010,58 @@
 							}
 						};
 						
-						
+						var load;
 						if (node) {
-							dm.createNodeLoad(node, freeEnd, nodeAtArrowEnd, dx, dy, 0.0);
+							load = dm.createNodeLoad(node, freeEnd, nodeAtArrowEnd, dx, dy, 0.0);
 							touched = true;
 							changed = true;
 						} 
+						
+						if (S.snapToGrid) {
+							var grid = S.grid;
+							
+							if (load) {
+								if (node) {
+									dm.transitNode(["theNodes",node.id], Math.round(node.X / grid) * grid - node.X, Math.round(node.Y / grid) * grid - node.Y); 
+									// dm.set(["theNodes",node.id,"X"],Math.round(node.X / grid) * grid)
+									// dm.set(["theNodes",node.id, "Y"],Math.round(node.Y / grid) * grid)
+									node.X = dm.theNodes[node.id].X;
+									node.Y = dm.theNodes[node.id].Y;
+									$D.iterate(dm.theNodes,function(n){
+										if (n.id != node.id && $D.distance(n,node) < 0.01) {
+											node = dm.mergeNodes(node, n);
+										};
+									});
+								} 
+								if (freeEnd) {
+									dm.transitNode(["currentPattern","Loads",load.id,"freeEnd"], Math.round(freeEnd.X / grid) * grid - freeEnd.X, Math.round(freeEnd.Y / grid) * grid - freeEnd.Y); 
+									freeEnd.X = load.freeEnd.X;
+									freeEnd.Y = load.freeEnd.Y;
+									// freeEnd.X = Math.round(freeEnd.X / grid) * grid;
+									// freeEnd.Y = Math.round(freeEnd.Y / grid) * grid;
+									// dm.set(["currentPattern","Loads",load.id,"freeEnd","X"],Math.round(freeEnd.X / grid) * grid)
+									// dm.set(["currentPattern","Loads",load.id,"freeEnd","Y"],Math.round(freeEnd.Y / grid) * grid )
+									$D.iterate(dm.theNodes,function(n){
+										if (n.id != freeEnd.id && $D.distance(n,freeEnd) < 0.01) {
+											freeEnd = dm.mergeNodes(freeEnd, n);
+										};
+									});
+								} 
+							}
+							
+						}
+						if (freeEnd) {
+							dm.set(["currentPattern","Loads",load.id,"freeEnd","constraintOnLine"],new $D.LineElement({
+								nodes : [{
+									X : nl.line.getFrom().X + freeEnd.X - node.X,
+									Y : nl.line.getFrom().Y + freeEnd.Y - node.Y,
+								},{
+									X : nl.line.getEnd().X + freeEnd.X - node.X,
+									Y : nl.line.getEnd().Y + freeEnd.Y - node.Y,
+								}]
+							}))
+						}
+						
 						
 						var msg;
 						if(changed) {

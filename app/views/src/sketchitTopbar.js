@@ -22,8 +22,9 @@ sketchit.views.Topbar = Ext.extend(Ext.Toolbar, {
 				xtype:'segmentedbutton',
 				allowMultiple:true,
 				items:[{
-					text: 'Size',
-					disabled:true
+					text: 'Structure',
+					// disabled:true,
+					pressed:true,
 				},{
 					text: 'NodeId',
 					pressed:true
@@ -54,8 +55,19 @@ sketchit.views.Topbar = Ext.extend(Ext.Toolbar, {
 				},{
 					text: 'ElementId',
 					pressed:false
+				},{
+					text: 'Nodes',
+					pressed:true
+				},{
+					text: 'Loads',
+					pressed:true
+				},{
+					text: 'Constraints',
+					pressed:true
 				}
 				]
+			}, {
+				text : 'rescale',
 			}]
 		});
 		sketchit.views.Topbar.superclass.initComponent.apply(this, arguments);

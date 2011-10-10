@@ -52,6 +52,8 @@ sketchit.views.Bottombar = Ext.extend(Ext.Toolbar, {
 				}, {
 					text : 'run',
 					iconCls : 'run',
+					// text : 'rescale',
+					// iconCls : 'contract',
 					style : {
 						"font-size" : "80%"
 					}

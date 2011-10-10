@@ -98,12 +98,17 @@
 						autoMergeNodeOnLine : true,
 						autoMergeNodeOnLineThreshold : 10,
 
+						showStructure: true,
 						showNodeId : true,
 						showElementId : false,
 						showMarks : false,
 						showGrid : true,
 						showSPC : true,
 						showLineElementDirection : false,
+						showConstraints: true,
+						showLoads:true,
+						showNodes: true,
+						
 
 						canvasBgColor : "rgb(255,255,255)",
 						inputStrokeStyle : "rgb(0,0,255)",
@@ -151,11 +156,18 @@
 
 					//this.init Menu Handlers;
 
+					//show structre button
+					this.topBar.getComponent(0).getComponent(0).setHandler(function() {
+						this.settings.showStructure = !this.settings.showStructure;
+						this.refresh();
+					}, this);
+					
 					//show node id button
 					this.topBar.getComponent(0).getComponent(1).setHandler(function() {
 						this.settings.showNodeId = !this.settings.showNodeId;
 						this.refresh();
 					}, this);
+					
 					//grid button
 					this.topBar.getComponent(0).getComponent(2).setHandler(function() {
 						this.settings.showGrid = !this.settings.showGrid;
@@ -205,6 +217,21 @@
 						this.settings.showElementId = !this.settings.showElementId;
 						this.refresh();
 					}, this);
+					//show show Loads button
+					this.topBar.getComponent(0).getComponent(11).setHandler(function() {
+						this.settings.showNodes = !this.settings.showNodes;
+						this.refresh();
+					}, this);
+					//show show Loads button
+					this.topBar.getComponent(0).getComponent(12).setHandler(function() {
+						this.settings.showLoads = !this.settings.showLoads;
+						this.refresh();
+					}, this);
+					//show show Constraints button
+					this.topBar.getComponent(0).getComponent(13).setHandler(function() {
+						this.settings.showConstraints = !this.settings.showConstraints;
+						this.refresh();
+					}, this);
 					//real time button
 					this.topBar.getComponent(0).getComponent(3).setHandler(function() {
 						this.settings.autoAnalysis = !this.settings.autoAnalysis;
@@ -214,6 +241,11 @@
 							})
 						}
 					}, this);
+					
+					// autoScale button
+					
+					this.topBar.getComponent(1).setHandler(this.autoScale, this);
+					
 					//clear button
 					this.bottomBar.getComponent(2).setHandler(this.clearAll, this);
 
@@ -232,7 +264,7 @@
 					//delete button
 					this.bottomBar.getComponent(4).setHandler(function() {
 						this.Domain.mark();
-						if(!this.Domain["removeSelectedElement"]()) {
+						if(!this.Domain["removeSelectedObjects"]()) {
 							console.log("do nothing");
 							this.Domain.unmark();
 						} else {
@@ -397,10 +429,19 @@
 						this.applyGridStyle(vps);
 						R.drawGrid(S.grid, S.grid, c1.X, c2.X, c1.Y, c2.Y);
 					}
-					draw(eles, "display", R, vps);
-					draw(domain.theSPCs, "display", R, vps);
-					draw(domain.thePatterns[1].Loads, "display", R, vps);
-					draw(nodes, "display", R, vps);
+					
+					if (S.showStructure) {
+						draw(eles, "display", R, vps);
+					}
+					if (S.showConstraints) {
+						draw(domain.theSPCs, "display", R, vps);
+					}
+					if (S.showLoads) {
+						draw(domain.thePatterns[1].Loads, "display", R, vps);
+					}
+					if (S.showNodes) {
+						draw(nodes, "display", R, vps);
+					}
 
 					if(this.Domain.deformationAvailable && S.showDeformation) {
 						draw(eles, "displayDeformation", R, vps, dfs, S.deformationResolution);
@@ -812,11 +853,37 @@
 						var dm = this.Domain;
 						var S = this.settings;
 						var n = dm.createNode(data.from.X, data.from.Y);
-						var spc = dm.createSPC(n);
 						var changed;
 						var np;
 						var nt = S.SPCSnapToNodeThreshold/S.viewPortScale;
 						var lt = S.SPCSnapToLineThreshold/S.viewPortScale;
+						
+						var temp = dm.snapTo4Direction(data.IndicativeAngle, S.SPCSnapToDirectionThreshold);
+						// if(temp.capture) {
+							// angle = temp.angle;
+							// direction = temp.direction;
+						// }
+						// temp = {
+							// node : n,
+							// angle : angle,
+							// show : show
+						// };
+						// if($D.isDefined(direction)) {
+							// temp.direction = direction;
+						// }
+						// spc = new SPC(temp);
+						// this.addComponent({
+							// storeSelector : "theSPCs",
+							// item : spc
+						// });
+						// //this.run("addAComponent", spc, this.theSPCs);
+						// this.set("theNodes." + n.id + ".SPC", spc);
+						
+						
+						var spc = dm.createSPC(n,{
+							direction: temp.dir,
+							angle : temp.angle
+						});
 						if(S.SPCSnapToNode) {
 							// np = dm.snapToNode(n, S.SPCSnapToNodeThreshold);
 							np = dm.snapToNode(n, nt);
@@ -927,6 +994,7 @@
 						var nt = S.loadSnapToNodeThreshold/S.viewPortScale;
 						var lt = S.loadSnapToLineThreshold/S.viewPortScale;
 						var np1 = dm.snapToNode(data.to, nt);
+						var addOnNode = false;
 						if (S.loadSnapToNode) {
 							if (np1.capture) {
 								node = np1.node;
@@ -938,6 +1006,7 @@
 								nodeAtArrowEnd = true;
 								dx = node.X - freeEnd.X;
 								dy = node.Y - freeEnd.Y;
+								addOnNode = true;
 	
 							} else {
 								var np2 = dm.snapToNode(data.from, nt); 
@@ -951,6 +1020,7 @@
 									nodeAtArrowEnd = false;
 									dx = freeEnd.X - node.X;
 									dy = freeEnd.Y - node.Y;
+									addOnNode = true;
 								};
 							};
 						}
@@ -1050,7 +1120,7 @@
 							}
 							
 						}
-						if (freeEnd) {
+						if (freeEnd && !addOnNode) {
 							dm.set(["currentPattern","Loads",load.id,"freeEnd","constraintOnLine"],new $D.LineElement({
 								nodes : [{
 									X : nl.line.getFrom().X + freeEnd.X - node.X,
@@ -1147,6 +1217,14 @@
 					this.recordDeltaTransform();
 					this.refresh();
 				},
+				autoScale: function() {
+					this.settings.autoDeformationScale = true;
+					this.settings.autoMomentScale = true;
+					this.reanalyze(function(){
+						this.refresh();
+					})
+					
+				},
 				clearAll : function() {
 					var r = confirm("Restart the sketch: you can not undo this operation, are you sure?");
 					if(r === true) {
@@ -1211,6 +1289,7 @@
 										var ascale = this.getAutoDeformationScale(this.settings.maxDeformationOnScreen)
 										if(isFinite(ascale)) {
 											this.settings.deformationScale = ascale;
+											this.settings.autoDeformationScale = false;
 										}
 									}
 

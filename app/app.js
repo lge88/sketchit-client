@@ -1082,55 +1082,69 @@
 						
 						var load;
 						if (node) {
-							load = dm.createNodeLoad(node, freeEnd, nodeAtArrowEnd, dx, dy, 0.0);
+							load = dm.createNodeLoad(node, freeEnd, nodeAtArrowEnd);
+							// load = dm.createNodeLoad(node, freeEnd, nodeAtArrowEnd, dx, dy, 0.0);
 							touched = true;
 							changed = true;
-						} 
-						
-						if (S.snapToGrid) {
-							var grid = S.grid;
-							
-							if (load) {
-								if (node) {
-									dm.transitNode(["theNodes",node.id], Math.round(node.X / grid) * grid - node.X, Math.round(node.Y / grid) * grid - node.Y); 
-									// dm.set(["theNodes",node.id,"X"],Math.round(node.X / grid) * grid)
-									// dm.set(["theNodes",node.id, "Y"],Math.round(node.Y / grid) * grid)
-									node.X = dm.theNodes[node.id].X;
-									node.Y = dm.theNodes[node.id].Y;
-									$D.iterate(dm.theNodes,function(n){
-										if (n.id != node.id && $D.distance(n,node) < 0.01) {
-											node = dm.mergeNodes(node, n);
-										};
-									});
-								} 
-								if (freeEnd) {
-									dm.transitNode(["currentPattern","Loads",load.id,"freeEnd"], Math.round(freeEnd.X / grid) * grid - freeEnd.X, Math.round(freeEnd.Y / grid) * grid - freeEnd.Y); 
-									freeEnd.X = load.freeEnd.X;
-									freeEnd.Y = load.freeEnd.Y;
-									// freeEnd.X = Math.round(freeEnd.X / grid) * grid;
-									// freeEnd.Y = Math.round(freeEnd.Y / grid) * grid;
-									// dm.set(["currentPattern","Loads",load.id,"freeEnd","X"],Math.round(freeEnd.X / grid) * grid)
-									// dm.set(["currentPattern","Loads",load.id,"freeEnd","Y"],Math.round(freeEnd.Y / grid) * grid )
-									$D.iterate(dm.theNodes,function(n){
-										if (n.id != freeEnd.id && $D.distance(n,freeEnd) < 0.01) {
-											freeEnd = dm.mergeNodes(freeEnd, n);
-										};
-									});
-								} 
+							if (S.snapToGrid) {
+								var grid = S.grid;
+								
+								if (load) {
+									if (node) {
+										dm.transitNode(["theNodes",node.id], Math.round(node.X / grid) * grid - node.X, Math.round(node.Y / grid) * grid - node.Y); 
+										// dm.set(["theNodes",node.id,"X"],Math.round(node.X / grid) * grid)
+										// dm.set(["theNodes",node.id, "Y"],Math.round(node.Y / grid) * grid)
+										node.X = dm.theNodes[node.id].X;
+										node.Y = dm.theNodes[node.id].Y;
+										$D.iterate(dm.theNodes,function(n){
+											if (n.id != node.id && $D.distance(n,node) < 0.01) {
+												node = dm.mergeNodes(node, n);
+											};
+										});
+									} 
+									if (freeEnd) {
+										dm.transitNode(["currentPattern","Loads",load.id,"freeEnd"], Math.round(freeEnd.X / grid) * grid - freeEnd.X, Math.round(freeEnd.Y / grid) * grid - freeEnd.Y); 
+										freeEnd.X = load.freeEnd.X;
+										freeEnd.Y = load.freeEnd.Y;
+										// freeEnd.X = Math.round(freeEnd.X / grid) * grid;
+										// freeEnd.Y = Math.round(freeEnd.Y / grid) * grid;
+										// dm.set(["currentPattern","Loads",load.id,"freeEnd","X"],Math.round(freeEnd.X / grid) * grid)
+										// dm.set(["currentPattern","Loads",load.id,"freeEnd","Y"],Math.round(freeEnd.Y / grid) * grid )
+										$D.iterate(dm.theNodes,function(n){
+											if (n.id != freeEnd.id && $D.distance(n,freeEnd) < 0.01) {
+												freeEnd = dm.mergeNodes(freeEnd, n);
+											};
+										});
+									} 
+								}
+								
 							}
-							
+							if (freeEnd && !addOnNode) {
+								dm.set(["currentPattern","Loads",load.id,"freeEnd","constraintOnLine"],new $D.LineElement({
+									nodes : [{
+										X : nl.line.getFrom().X + freeEnd.X - node.X,
+										Y : nl.line.getFrom().Y + freeEnd.Y - node.Y,
+									},{
+										X : nl.line.getEnd().X + freeEnd.X - node.X,
+										Y : nl.line.getEnd().Y + freeEnd.Y - node.Y,
+									}]
+								}))
+							}
+						} else {
+							$D.iterate(dm.theNodes,function(n){
+								if (!$D.isDefined(n.SPC)) {
+									var fE = new $D.Node({
+										X:n.X + data.to.X - data.from.X,
+										Y:n.Y + data.to.Y - data.from.Y
+									});
+									load = dm.createNodeLoad(n, fE, false);
+									touched = true;
+									changed = true;
+									
+								}
+							})
 						}
-						if (freeEnd && !addOnNode) {
-							dm.set(["currentPattern","Loads",load.id,"freeEnd","constraintOnLine"],new $D.LineElement({
-								nodes : [{
-									X : nl.line.getFrom().X + freeEnd.X - node.X,
-									Y : nl.line.getFrom().Y + freeEnd.Y - node.Y,
-								},{
-									X : nl.line.getEnd().X + freeEnd.X - node.X,
-									Y : nl.line.getEnd().Y + freeEnd.Y - node.Y,
-								}]
-							}))
-						}
+						
 						
 						
 						var msg;
@@ -1271,7 +1285,12 @@
 					alert(this.Domain.runStaticConstant(this.settings.modelScale, this.settings.loadScale));
 				},
 				showLog: function() {
-					alert("logs:\n"+this.logs);
+					var str = "";
+					str += "logs:\n";
+					for (var i = 0; i < this.logs.length; i++) {
+						str += this.logs[i] + "\n";
+					}
+					alert(str);
 				},
 				reanalyze : function(fn) {
 					var args = Array.prototype.slice.call(arguments, 1), flag = false;

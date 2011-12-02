@@ -64,6 +64,9 @@ sketchit.views.Topbar = Ext.extend(Ext.Toolbar, {
 				},{
 					text: 'Constraints',
 					pressed:true
+				},{
+					text: 'Dynamics',
+					pressed:false
 				}
 				]
 			}, {

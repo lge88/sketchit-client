@@ -33,6 +33,7 @@
 						touchMoveFps : 10,
 						snapAnimationFps : 50,
 						snapAnimationElapse : 1500,
+						dynamicsAnalysis: false,
 
 						autoAnalysis : true,
 						showMessage : true,
@@ -156,6 +157,11 @@
 
 					//this.init Menu Handlers;
 
+					//run button
+					this.bottomBar.getComponent(0).getComponent(3).setHandler(function() {
+						this.reanalyze();
+					}, this);
+					
 					//show structre button
 					this.topBar.getComponent(0).getComponent(0).setHandler(function() {
 						this.settings.showStructure = !this.settings.showStructure;
@@ -173,10 +179,17 @@
 						this.settings.showGrid = !this.settings.showGrid;
 						this.refresh();
 					}, this);
-					//run button
-					this.bottomBar.getComponent(0).getComponent(3).setHandler(function() {
-						this.reanalyze();
+					
+					//real time button
+					this.topBar.getComponent(0).getComponent(3).setHandler(function() {
+						this.settings.autoAnalysis = !this.settings.autoAnalysis;
+						if(this.settings.autoAnalysis === true) {
+							this.reanalyze(function() {
+								this.refresh();
+							})
+						}
 					}, this);
+					
 					//deformation button
 					this.topBar.getComponent(0).getComponent(4).setHandler(function() {
 						this.settings.showDeformation = !this.settings.showDeformation;
@@ -191,32 +204,38 @@
 							this.refresh();
 						})
 					}, this);
+					
 					//snap to grid button
 					this.topBar.getComponent(0).getComponent(6).setHandler(function() {
 						this.settings.snapToGrid = !this.settings.snapToGrid;
 					}, this);
+					
 					//snap to node button
 					this.topBar.getComponent(0).getComponent(7).setHandler(function() {
 						this.settings.snapToNode = !this.settings.snapToNode;
 						this.settings.SPCSnapToNode = !this.settings.SPCSnapToNode;
 						this.settings.loadSnapToNode = !this.settings.loadSnapToNode;
 					}, this);
+					
 					//snap to line button
 					this.topBar.getComponent(0).getComponent(8).setHandler(function() {
 						this.settings.snapToLine = !this.settings.snapToLine;
 						this.settings.SPCSnapToLine = !this.settings.SPCSnapToLine;
 						this.settings.loadSnapToLine = !this.settings.loadSnapToLine;
 					}, this);
+					
 					//show element direction
 					this.topBar.getComponent(0).getComponent(9).setHandler(function() {
 						this.settings.showLineElementDirection = !this.settings.showLineElementDirection;
 						this.refresh();
 					}, this);
+					
 					//show show ElementId button
 					this.topBar.getComponent(0).getComponent(10).setHandler(function() {
 						this.settings.showElementId = !this.settings.showElementId;
 						this.refresh();
 					}, this);
+					
 					//show show Loads button
 					this.topBar.getComponent(0).getComponent(11).setHandler(function() {
 						this.settings.showNodes = !this.settings.showNodes;
@@ -227,19 +246,17 @@
 						this.settings.showLoads = !this.settings.showLoads;
 						this.refresh();
 					}, this);
+					
 					//show show Constraints button
 					this.topBar.getComponent(0).getComponent(13).setHandler(function() {
 						this.settings.showConstraints = !this.settings.showConstraints;
 						this.refresh();
 					}, this);
-					//real time button
-					this.topBar.getComponent(0).getComponent(3).setHandler(function() {
-						this.settings.autoAnalysis = !this.settings.autoAnalysis;
-						if(this.settings.autoAnalysis === true) {
-							this.reanalyze(function() {
-								this.refresh();
-							})
-						}
+					
+					//show show Constraints button
+					this.topBar.getComponent(0).getComponent(14).setHandler(function() {
+						this.settings.dynamicsAnalysis = !this.settings.dynamicsAnalysis;
+						this.refresh();
 					}, this);
 					
 					// autoScale button

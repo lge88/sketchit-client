@@ -1314,7 +1314,7 @@
 					if(this.Domain.isReadyToRun()) {
 						if(this.settings.showMoment || this.settings.showDeformation) {
 							$D.ajaxPost({
-								url : "/cgi-bin/lge/sketchit-server/test/sketchit.ops",
+								url : "/cgi-bin/lge/sketchit-server.bak/test/sketchit.ops",
 								scope : this,
 								data : this.Domain.runStaticConstant(this.settings.showDeformation, this.settings.showMoment),
 								success : function(result) {

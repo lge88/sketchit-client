@@ -71,6 +71,8 @@ sketchit.views.Topbar = Ext.extend(Ext.Toolbar, {
 				]
 			}, {
 				text : 'rescale',
+			},{
+				text : 'more',
 			}]
 		});
 		sketchit.views.Topbar.superclass.initComponent.apply(this, arguments);

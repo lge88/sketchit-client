@@ -44,16 +44,16 @@ sketchit.views.Bottombar = Ext.extend(Ext.Toolbar, {
 						"font-size" : "80%"
 					}
 				}, {
-					text : 'mesh',
-					iconCls : 'mesh',
-					style : {
-						"font-size" : "80%"
-					}
-				}, {
 					text : 'run',
 					iconCls : 'run',
 					// text : 'rescale',
 					// iconCls : 'contract',
+					style : {
+						"font-size" : "80%"
+					}
+				},{
+					text: 'mesh',
+					iconCls: 'mesh',
 					style : {
 						"font-size" : "80%"
 					}
@@ -96,6 +96,12 @@ sketchit.views.Bottombar = Ext.extend(Ext.Toolbar, {
 				iconCls : 'log',
 				ui : "plain",
 			}, {
+				// text : 'mesh',
+				iconCls : 'mesh',
+				// style : {
+					// "font-size" : "80%"
+				// }
+			},{
 				xtype : 'spacer',
 				//width:10
 			}, {

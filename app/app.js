@@ -17,6 +17,36 @@
 							}
 						}
 					})
+					// this.settingTabs = new Ext.TabPanel({
+					    // sortable: true, // Tap and hold to sort
+					    // ui: 'dark',
+					    // floating : true,
+					    // centered : true,
+					    // width : 600,
+					    // height : 450,
+					    // activeTab : 1,
+					    // tabBarPosition : 'tap',
+					    // items: [{
+					        // title: 'display',
+					        // html: 'display settings',
+					        // cls: 'card card1'
+					    // },
+					    // {
+					        // title: 'model',
+					        // html: 'model settngs',
+					        // cls: 'card card2'
+					    // },
+					    // {
+					        // title: 'analysis',
+					        // html: 'analysis settings',
+					        // cls: 'card card3'
+					    // },
+					    // {
+					        // title: 'advanced',
+					        // html: 'advanced settings',
+					        // cls: 'card card4'
+					    // }]
+					// });
 
 					//init model Domain
 					this.Domain = new $D.Domain();
@@ -44,7 +74,8 @@
 						messageLastTime : 5,
 
 						modelScale : 2.0,
-						loadScale : 1.0,
+						loadScale : 100.0,
+						// loadScale : 1.0,
 
 						mouseWheelSpeedFactor : 5, //1~10, scale = e^(wheelDelta*speedFactor/speedBase)
 						mouseWheelSpeedBase : 5000, //fixed
@@ -58,7 +89,8 @@
 						showDeformation : true,
 						showMoment : true,
 
-						deformationScale : 2000,
+						deformationScale : 20,
+						// deformationScale : 2000,
 						momentScale : 0.01,
 						autoDeformationScale : true,
 						maxDeformationOnScreen : 40,
@@ -117,15 +149,18 @@
 
 						// defaultLineELementType : DirectFEA.ElasticBeamColumn,
 						defaultLineELementType : "ElasticBeamColumn",
-						defaultGeomTransf : Domain.theGeomTransfs[2],
-						defaultGeomTransfId : 2,
+						defaultGeomTransf : Domain.theGeomTransfs[3], 
+						defaultGeomTransfId : 3,// 1:linear, 2:PDelta, 3:Corotational
 						defaultNodeLoadType : "load",
 
 						UniformElementLoadDirectionThreshold : 0.3,
 						UniformElementLoadSnapToLineThreshold : 15,
 
 						circleSelectThreshold : 0.1,
-						clickSelectThreshold : 10
+						clickSelectThreshold : 10,
+						
+						autoMesh: true,
+						autoMeshSize: 20
 
 					})
 
@@ -263,6 +298,9 @@
 					
 					this.topBar.getComponent(1).setHandler(this.autoScale, this);
 					
+					// more button
+					this.topBar.getComponent(2).setHandler(this.showMoreSetting, this);
+					
 					//clear button
 					this.bottomBar.getComponent(2).setHandler(this.clearAll, this);
 
@@ -307,15 +345,246 @@
 					//log button
 					this.bottomBar.getComponent(9).setHandler(this.showLog, this);
 					
+					//mesh button
+					this.bottomBar.getComponent(10).setHandler(this.autoMesh, this);
+					
 					//mode toggle button
-					this.bottomBar.getComponent(11).on({
+					this.bottomBar.getComponent(12).on({
 						toggle : function() {
-							this.settings.mode = this.bottomBar.getComponent(11).getPressed().text;
+							this.settings.mode = this.bottomBar.getComponent(12).getPressed().text;
 						},
 						scope : this
 					});
 
 				},
+				
+				showMoreSetting : function() {
+					// var settingTabs = new Ext.TabPanel({
+						// floating : true,
+						// modal : true,
+						// centered : true,
+						// ui : 'dark',
+						// width : 300,
+						// height : 200,
+						// tabBarPosition : 'tap',
+						// activeTab : 1,
+						// items : [
+							// {
+								// title : '1',
+								// html : 'test1',
+								// cls : 'card card1'
+							// },
+							// {
+								// title : '2',
+								// html : 'test1',
+								// cls : 'card card2'
+							// },
+							// {
+								// title : '3',
+								// html : 'test1',
+								// cls : 'card card5'
+							// },
+						// ]
+					// });
+					
+					var settingTabs = new Ext.TabPanel({
+					    sortable: true, // Tap and hold to sort
+					    // ui: 'dark',
+					    // type : 'dark',
+					    floating : true,
+					    centered : true,
+					    modal : true,
+					    width : 600,
+					    height : 500,
+					    activeTab : 1,
+					    tabBarPosition : 'tap',
+					    items: [{
+					        title: 'display',
+					        // title: '1',
+					        // html: 'display settings',
+					        cls: 'card card1',
+					        scroll : 'vertical',
+					        defaults : {
+					        	xtype : 'togglefield',
+					        	labelWidth : '70%',
+					        	// height : 30
+					        },
+					        items : [{
+					        	// xtype : 'togglefield',
+					        	label : 'structure'
+					        },{
+					        	// xtype : 'togglefield',
+					        	label : 'deformation'
+					        },{
+					        	// xtype : 'togglefield',
+					        	label : 'moment'
+					        },{
+					        	// xtype : 'togglefield',
+					        	label : 'node'
+					        },{
+					        	// xtype : 'togglefield',
+					        	label : 'node tag'
+					        },{
+					        	// xtype : 'togglefield',
+					        	label : 'element tag'
+					        },{
+					        	// xtype : 'togglefield',
+					        	label : 'element direction'
+					        },{
+					        	// xtype : 'togglefield',
+					        	label : 'loads'
+					        },{
+					        	// xtype : 'togglefield',
+					        	label : 'constraints'
+					        }]
+					    },
+					    {
+					        title: 'model',
+					        // title: '2',
+					        // html: 'model settngs',
+					        cls: 'card card1',
+					        scroll : 'vertical',
+					        defaults : {
+					        	xtype : 'togglefield',
+					        	labelWidth : '50%',
+					        	// height : 30
+					        },
+					        items : [{
+					        	xtype: 'spinnerfield',
+					        	label : 'number of dimension',
+					        	maxValue : 3,
+					        	minValue : 1,
+					        	value : 2
+					        },{
+					        	xtype : 'spinnerfield',
+					        	label : 'number of DOF',
+					        	maxValue : 6,
+					        	minValue : 1,
+					        	value : 3
+					        },{
+					        	label : 'enable auto mesh',
+					        },{
+					        	label : 'mesh size',
+					        	xtype: 'spinnerfield',
+					        	value : 20
+					        }]
+					    },
+					    {
+					        // title: '3',
+					        title: 'analysis',
+					        // html: 'analysis settings',
+					        cls: 'card card1',
+					        defaults : {
+					        	xtype : 'selectfield',
+					        	labelWidth : '50%',
+					        },
+					        items : [{
+					        	label : 'analysis type',
+					        	options :[
+							        {text: 'static',  value: 'static'},
+							        {text: 'dynamic', value: 'dynamic'}
+							    ]
+					        },{
+					        	xtype : 'togglefield',
+					        	label : 'enable auto run',
+					        },{
+					        	label : 'time series',
+					        	options :[
+							        {text: 'constant',  value: 'constant'},
+							        {text: 'linear', value: 'linear'},
+							        {text: 'input ground motion', value: 'path'}
+							    ]
+					        },{
+					        	label : 'algorithm',
+					        	options :[
+							        {text: 'Newton linear search',  value: 'NewtonLinear'},
+							        {text: 'Newton-Raphson', value: 'Newton-Raphson'}
+							    ]
+					        },{
+					        	label : 'test',
+					        	options :[
+							        {text: 'unbalanced load',  value: 'unbalancedload'},
+							        {text: 'incremental displacement', value: 'incrdisp'},
+							    ]
+					        },{
+					        	label : 'integrator',
+					        	options :[
+							        {text: 'load control',  value: 'loadcontrol'},
+							    ]
+					        },{
+					        	label : 'constaint',
+					        	options :[
+							        {text: 'plain',  value: 'plain'},
+							        {text: 'lagrange', value: 'lagrange'},
+							    ]
+					        },{
+					        	label : 'numberer',
+					        	options :[
+							        {text: 'plain',  value: 'plain'},
+							        {text: 'RCM',  value: 'RCM'}
+							    ]
+					        },{
+					        	label : 'system',
+					        	options :[
+							        {text: 'Band General',  value: 'Bandgeneral'},
+							    ]
+					        }]
+					    },
+					    {
+					        // title: '4',
+					        title: 'advanced',
+					        // html: 'advanced settings',
+					        cls: 'card card1',
+					        defaults : {
+					        	xtype : 'togglefield',
+					        	labelWidth : '50%',
+					        },
+					        items : [{
+					        	label : 'snap to grid'
+					        },{
+					        	label : 'snap to line'
+					        },{
+					        	label : 'snap to node'
+					        }]
+					    },
+					    {
+					        // title: '4',
+					        title: 'elements',
+					        // html: 'advanced settings',
+					        cls: 'card card1',
+					        defaults : {
+					        	xtype : 'togglefield',
+					        	labelWidth : '50%',
+					        },
+					        items : [{
+					        	xtype: 'selectfield',
+					        	label : 'default element type',
+					        	options : [
+					        		{text: 'elastic beam', value: 'elasticBeamColumn'},
+					        		{text: 'truss', value: 'truss'},
+					        		{text: 'non-linear beam', value: 'nonlinearBeamColumn'},
+					        		{text: 'beam with plastic hinges', value: 'beamWithHinges'}
+					        	]
+					        },{
+					        	label : 'A',
+					        	xtype : 'spinnerfield',
+					        	value:  100
+					        },{
+					        	label : 'E',
+					        	xtype : 'spinnerfield',
+					        	value : 29000
+					        },{
+					        	label : 'I',
+					        	xtype : 'spinnerfield',
+					        	value:  833.3333
+					        }]
+					    }]
+					});
+					
+					settingTabs.show();
+					
+				},
+				
 				getCanvasCoordFromViewPort : function(p) {
 					return {
 						X : (p.X - this.settings.viewPortShiftX) / this.settings.viewPortScale,
@@ -716,6 +985,47 @@
 					this.printMessage(msg);
 					this.afterReanalyzeRequiredCommand();
 				},
+				
+				autoMesh: function(){
+					this.beforeUndoableCommand();
+					var touched = true;
+					var changed = true;
+					var dm = this.Domain;
+					var sz = this.settings.autoMeshSize;
+					var ratio = [];
+					var n;
+					var l;
+					var ls = [];
+					
+					for (var i in dm.theElements) {
+						if(dm.theElements.hasOwnProperty(i)) {
+							ls.push(dm.theElements[i])
+						}
+					};
+					
+					for (var i=0; i < ls.length; i++) {
+						l = ls[i];
+						n = Math.round(l.getLength()/sz);
+						ratio = [];
+						for (var j=0; j < n-1; j++) {
+							ratio.push((j+1)/n);
+						};
+						dm.splitLineElement (l, ratio, true);
+					};
+
+					var msg;
+					if(changed) {
+						msg = "auto mesh with size = "+ sz;
+						this.logMessage(msg);
+					} else {
+						msg = "do nothing";
+					}
+					this.afterUndoableCommand(touched,changed,true);
+					this.printMessage(msg);
+					this.afterReanalyzeRequiredCommand();
+					
+				},
+				
 				sketchVocabulary : {
 					"draw" : {
 						"line" : "drawLine",

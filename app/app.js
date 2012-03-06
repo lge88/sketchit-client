@@ -193,7 +193,7 @@
 					//this.init Menu Handlers;
 
 					//run button
-					this.bottomBar.getComponent(0).getComponent(3).setHandler(function() {
+					this.bottomBar.getComponent(0).getComponent(2).setHandler(function() {
 						this.reanalyze();
 					}, this);
 					
